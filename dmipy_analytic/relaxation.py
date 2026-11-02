@@ -209,3 +209,185 @@ def mt_z_spectrum(offsets_hz, *, w1_hz, t_sat, T1a, T2a, T1b, T2b, k_f, k_r,
         s = evolve_two_pool(_equilibrium_state(M0a, M0b), t_sat, A)
         out[i] = s[idx] / norm if norm > 0 else 0.0
     return out if out.size > 1 else float(out[0])
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The relaxation that rides on a diffusion measurement: transverse and longitudinal decay, and the surface relaxivity
+# of a pore. Each is a multiplicative factor of the diffusion signal, gated by the time the magnetisation spends in
+# the state that relaxes: the time transverse for T2 and the surface, the storage time for T1.
+# ---------------------------------------------------------------------------------------------------------------------
+__all__ = __all__ + [
+    "transverse_decay", "longitudinal_decay", "surface_relaxation", "surface_to_volume",
+    "surface_relaxation_gamma_cylinders", "surface_relaxation_gamma_spheres",
+    "exterior_surface_to_volume",
+]
+
+_SURFACE_TO_VOLUME_OVER_DIAMETER = {"sphere": 6.0, "cylinder": 4.0, "plane": 2.0}
+# the cell geometry of the exterior surface-to-volume ratio: (surface-to-volume coefficient k, water-content power m)
+_EXTERIOR_GEOMETRY = {"sphere": (6.0, 3), "cylinder": (4.0, 2), "plane": (2.0, 1)}
+
+
+def transverse_decay(tau, T2):
+    r"""The transverse relaxation of the magnetisation over the time it is transverse, ``exp(-tau / T2)``.
+
+    Parameters
+    ----------
+    tau : float or array_like
+        The time the magnetisation is transverse, s: the echo time of a spin echo, the two encoding intervals of a
+        stimulated echo.
+    T2 : float or array_like
+        The transverse relaxation time, s.
+
+    Assumes mono-exponential relaxation, independent of the diffusion encoding. Source: Bloch F (1946), Phys. Rev.
+    70:460, Eq. 8 (the transverse decay); Hahn EL (1950), Phys. Rev. 80:580 (the spin echo).
+    """
+    return np.exp(-tau / T2)
+
+
+def longitudinal_decay(tau, T1):
+    r"""The longitudinal relaxation of the magnetisation stored along the field, ``exp(-tau / T1)``.
+
+    Parameters
+    ----------
+    tau : float or array_like
+        The storage time, s: the mixing time of a stimulated echo.
+    T1 : float or array_like
+        The longitudinal relaxation time, s.
+
+    Assumes mono-exponential relaxation toward saturation. Source: Bloch F (1946), Phys. Rev. 70:460, Eq. 8 (the
+    longitudinal component); Hahn EL (1950), Phys. Rev. 80:580 (the stimulated echo).
+    """
+    return np.exp(-tau / T1)
+
+
+def surface_to_volume(diameter, geometry):
+    r"""The surface-to-volume ratio of a pore of the given size, 1/m: ``6/d`` for a sphere of diameter ``d``, ``4/d``
+    for an infinite cylinder, ``2/d`` for two plates a distance ``d`` apart.
+
+    Parameters
+    ----------
+    diameter : float or array_like
+        The diameter of the sphere or cylinder, or the separation of the plates, m.
+    geometry : {"sphere", "cylinder", "plane"}
+        The pore.
+
+    The ratio of the wall area to the enclosed volume: ``3/R``, ``2/R`` and ``1/(d/2)`` per unit wall.
+    """
+    try:
+        coefficient = _SURFACE_TO_VOLUME_OVER_DIAMETER[geometry]
+    except KeyError:
+        raise ValueError("geometry must be one of {}; got {!r}".format(sorted(_SURFACE_TO_VOLUME_OVER_DIAMETER),
+                                                                       geometry))
+    return coefficient / diameter
+
+
+def surface_relaxation(rho, surface_to_volume, tau):
+    r"""The relaxation at the walls of a pore in the fast-diffusion regime, ``exp(-rho (S/V) tau)``.
+
+    Parameters
+    ----------
+    rho : float or array_like
+        The surface relaxivity, m/s.
+    surface_to_volume : float or array_like
+        The ratio of wall area to volume, 1/m (:func:`surface_to_volume`).
+    tau : float or array_like
+        The time the magnetisation is transverse, s.
+
+    Assumes the spins sample the whole pore many times within ``1/(rho S/V)`` (the relaxation is a pore-averaged
+    rate ``rho S/V`` added to the bulk rate), so that it holds for ``rho a / D`` well below one, ``a`` the pore size.
+    Source: Brownstein KS, Tarr CE (1979), Phys. Rev. A 19:2446, Eq. 3 (the fast-diffusion limit).
+    """
+    return np.exp(-rho * surface_to_volume * np.asarray(tau, dtype=float))
+
+
+def _gamma_average_of_surface_relaxation(a, beta, c):
+    r"""``E_d[exp(-c/d)]`` for ``d ~ Gamma(shape a, rate beta)``: ``2 (beta c)^(a/2) K_a(2 sqrt(beta c)) / Gamma(a)``,
+    one for ``c <= 0``."""
+    special = need("scipy.special")
+    c = np.asarray(c, dtype=float)
+    z = 2.0 * np.sqrt(beta * c)
+    with np.errstate(over="ignore", invalid="ignore"):
+        average = 2.0 * (beta * c) ** (a / 2.0) / special.gamma(a) * special.kv(a, z)
+    return np.where(c <= 0, 1.0, average)
+
+
+def surface_relaxation_gamma_cylinders(shape, scale, rho, tau, volume_weighted=True):
+    r"""The surface relaxation of an ensemble of cylinders with a Gamma distribution of diameters,
+    ``E_d[exp(-rho (4/d) tau)] = 2 (beta c)^(a/2) K_a(2 sqrt(beta c)) / Gamma(a)`` with ``c = 4 rho tau``,
+    ``beta = 1/scale`` and ``a = shape + 2`` (the water of a cylinder scales with its cross-section ``d^2``).
+
+    Parameters
+    ----------
+    shape : float
+        The shape of the Gamma distribution of diameters.
+    scale : float
+        Its scale, m.
+    rho : float
+        The surface relaxivity, m/s.
+    tau : float or array_like
+        The time the magnetisation is transverse, s.
+    volume_weighted : bool
+        Weight the diameters by the water they enclose (``a = shape + 2``), as the signal is a spin average;
+        ``False`` is the number-weighted average (``a = shape``).
+
+    Assumes the fast-diffusion regime of :func:`surface_relaxation` in every cylinder and a Gamma distribution of
+    diameters. The average is the integral ``int x^(a-1) exp(-beta x - c/x) dx``, whose value is the Bessel function
+    of the second kind ``K_a``. It needs scipy (the ``special`` extra). Source: Gradshteyn IS, Ryzhik IM, *Table of
+    Integrals, Series, and Products*, 3.471.9; Brownstein and Tarr (1979), Phys. Rev. A 19:2446, Eq. 3.
+    """
+    a = shape + 2.0 if volume_weighted else shape
+    beta = 1.0 / scale
+    c = 4.0 * rho * np.asarray(tau, dtype=float)
+    return _gamma_average_of_surface_relaxation(a, beta, c)
+
+
+def surface_relaxation_gamma_spheres(shape, scale, rho, tau, volume_weighted=True):
+    r"""The surface relaxation of an ensemble of spheres with a Gamma distribution of diameters,
+    ``E_d[exp(-rho (6/d) tau)]``: :func:`surface_relaxation_gamma_cylinders` with ``c = 6 rho tau`` and
+    ``a = shape + 3`` (the water of a sphere scales with ``d^3``).
+
+    Parameters
+    ----------
+    shape : float
+        The shape of the Gamma distribution of diameters.
+    scale : float
+        Its scale, m.
+    rho : float
+        The surface relaxivity, m/s.
+    tau : float or array_like
+        The time the magnetisation is transverse, s.
+    volume_weighted : bool
+        Weight the diameters by their volume (``a = shape + 3``); ``False`` is the number-weighted average.
+
+    Assumes the fast-diffusion regime in every sphere and a Gamma distribution of diameters. It needs scipy (the
+    ``special`` extra). Source: Gradshteyn and Ryzhik, 3.471.9; Brownstein and Tarr (1979), Phys. Rev. A 19:2446, Eq. 3.
+    """
+    a = shape + 3.0 if volume_weighted else shape
+    beta = 1.0 / scale
+    c = 6.0 * rho * np.asarray(tau, dtype=float)
+    return _gamma_average_of_surface_relaxation(a, beta, c)
+
+
+def exterior_surface_to_volume(f_cell, shape, scale, *, geometry):
+    r"""The ratio of the cells' outer surface to the volume of the space around them, 1/m,
+    ``k f / ((1 - f)(shape + m - 1) scale)`` for cells with a Gamma distribution of outer diameters.
+
+    Parameters
+    ----------
+    f_cell : float
+        The volume fraction of the cells (their outer volume), in (0, 1).
+    shape, scale : float
+        The shape and the scale (m) of the Gamma distribution of the outer diameters.
+    geometry : {"sphere", "cylinder", "plane"}
+        The cell shape: ``(k, m)`` is ``(6, 3)``, ``(4, 2)`` or ``(2, 1)``, the surface-to-volume coefficient and the
+        power of the diameter with which the water of a cell grows.
+
+    Assumes a single population of cells that share the space around them; with several populations the surfaces
+    add and the volume is shared, ``sum_i f_i <S/V>_i / (1 - sum_i f_i)``. The mean of ``k/d`` over the
+    volume-weighted diameters is ``k / (scale (shape + m - 1))``.
+    """
+    try:
+        coefficient, power = _EXTERIOR_GEOMETRY[geometry]
+    except KeyError:
+        raise ValueError("geometry must be one of {}; got {!r}".format(sorted(_EXTERIOR_GEOMETRY), geometry))
+    return coefficient * f_cell / ((1.0 - f_cell) * (shape + power - 1.0) * scale)
