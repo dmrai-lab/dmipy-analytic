@@ -1,0 +1,40 @@
+{
+ "entries": {
+  "segment_field": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a0",
+   "sha256": "75ec3b7394f5508a3829e6fee2742c54ad232c5f8377ff54d01b9ac4ab94a432",
+   "shape": [
+    32,
+    3
+   ]
+  },
+  "segment_field/current": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a1",
+   "sha256": "2e09cb22b10c8bb00789a86b12eb2663e0ef1690883309046948d2ac54a97bc4",
+   "shape": [
+    32,
+    3
+   ]
+  },
+  "segment_field/on_the_wire": {
+   "kind": "str",
+   "value": "ValueError: point (np.float64(0.01), np.float64(0.005), np.float64(0.025)) lies on (or within rounding of) the segment (np.float64(0.0), np.float64(0.0), np.float64(-0.1)) -> (np.float64(0.02), np.float64(0.01), np.float64(0.15)), where the Biot-Savart integrand diverges. The field there is not defined; move the probe off the conductor"
+  },
+  "segment_field/one": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a2",
+   "sha256": "aa82ed5563c18826e14dcce905938854e4b4b8d53fea4344671915d7ed4d8e94",
+   "shape": [
+    1,
+    3
+   ]
+  }
+ },
+ "seconds": 0.5599614870152436,
+ "status": "ok"
+}
