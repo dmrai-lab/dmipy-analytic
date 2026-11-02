@@ -98,3 +98,37 @@ def test_exterior_surface_to_volume_of_a_packed_population():
         relaxation.exterior_surface_to_volume(f, shape, scale, geometry="blob")
     with pytest.raises(TypeError):
         relaxation.exterior_surface_to_volume(f, shape, scale)          # the geometry is required
+
+
+@pytest.mark.parametrize("c", [0.0, 1e-3, 0.5, 3.0, 40.0])
+def test_the_plane_robin_roots_solve_their_equation_one_per_interval(c):
+    xi = relaxation.plane_robin_roots(c, 50)
+    n = np.arange(50)
+    assert np.all((xi >= n * np.pi) & (xi < n * np.pi + np.pi / 2))
+    # zero at a root (no pole on the interval): the bisection's last bit of xi times the slope xi + c + 1, and the
+    # rounding of sin and cos at xi, each eps xi in absolute terms
+    residual = xi * np.sin(xi) - c * np.cos(xi)
+    assert np.all(np.abs(residual) <= 4 * np.finfo(float).eps * (xi + 1.0) * (xi + c + 1.0))
+    if c > 0:
+        assert xi[0] == pytest.approx(optimize.brentq(lambda x: x * np.tan(x) - c, 0.0, np.pi / 2 - 1e-15), rel=1e-12)
+
+
+def test_the_plane_series_is_one_at_the_start_and_its_two_limits():
+    """At ``tau = 0`` the series sums to one less its tail, ``sum_{n > N} 2 / xi_n^2 <= 2 / (pi^2 (N - 1))``. As
+    ``rho a / D -> inf`` the weights are the absorbing plates' ``8 / ((2n - 1)^2 pi^2)``; as ``rho a / D -> 0`` the
+    slowest rate is ``rho (2/d)`` (:func:`surface_relaxation`) to first order, ``xi_1^2 = c - c^2/3 + O(c^3)``, so the
+    log-attenuation departs from the fast-diffusion form by ``c/3`` of itself."""
+    d, D = 4e-6, 2e-9
+    a = d / 2
+    for c in (0.01, 1.0, 100.0):
+        N = 400
+        assert relaxation.surface_relaxation_plane(0.0, d, D, c * D / a, n_terms=N) == pytest.approx(
+            1.0, abs=2.0 / (np.pi ** 2 * (N - 1)))
+    xi = relaxation.plane_robin_roots(1e9, 5)
+    assert xi == pytest.approx((np.arange(5) + 0.5) * np.pi, rel=1e-8)
+    for c in (1e-3, 4e-3):
+        rho = c * D / a
+        tau = 1.0 / (rho * 2.0 / d)                                   # one fast-diffusion decay time
+        S = relaxation.surface_relaxation_plane(tau, d, D, rho)
+        departure = -np.log(S) - 1.0
+        assert departure == pytest.approx(-c / 3.0, rel=0.05)         # the next order is c^2: 0.4 % of c at c = 4e-3
