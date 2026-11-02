@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dmipy-analytic"
+version = "3.0.0"
+description = "Closed and semi-closed forms of the diffusion-MRI signal for special cases, each with its assumptions and its source: the one copy the dmipy packages import"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Rutger Fick", email = "fick.rutger@gmail.com"}]
+dependencies = ["numpy>=2.0"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+
+[project.optional-dependencies]
+# a form that needs a special function imports scipy inside the function, so `import dmipy_analytic` is numpy-only
+special = ["scipy>=1.11"]
+# the JAX forms (dmipy_analytic.jax): the same forms for jit, grad and vmap, each held to its numpy definition
+jax = ["jax>=0.6.2"]
+test = ["pytest>=8", "scipy>=1.11"]
+
+[project.urls]
+Homepage = "https://dmipy.org"
+Source = "https://github.com/dmrai-lab/dmipy-analytic"
+
+[tool.setuptools.packages.find]
+include = ["dmipy_analytic*"]
