@@ -3,6 +3,20 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+- **Diffusion on the surface of a straight tube** (`restricted.surface`): the echo of water confined to the surface of a
+  circular tube, the model of myelin water in the aqueous gaps between the lamellae (Canales-Rodriguez et al. 2026,
+  Phys. Med. Biol. 71:215006), and of a tube of any closed outline (a polygon through given points), for any
+  piecewise-constant gradient waveform. The surface is flat, so the signal is the product of the outline's matrix method
+  across the axis and free diffusion (or the plate pore of a capped tube) along it. The circle's truncation order
+  follows a proved bound; `pgse_waveform` builds the trapezoidal PGSE as played. The JAX twin propagates step by step.
+- **The periodic pore** (`matrix_method.PeriodicPore`, `matrix_method.polygon_fourier`): the closed curve walked along
+  its arc length, its coupling the exact Fourier coefficients of a polygon's coordinates.
+- **The 180 as a conjugation**: `MatrixPore.signal` and the periodic pore take the waveform as played with `refocus`,
+  the steps before which an ideal 180 conjugates the magnetisation; the effective waveform gives the same echo,
+  conjugated after an odd number of 180s. One propagation serves every pore; `MatrixPore`'s echoes are unchanged.
+
 ## [3.0.0] - 2026-11-02
 
 dmipy-analytic holds the closed and semi-closed forms of the diffusion-MRI signal for special cases, and the physical
