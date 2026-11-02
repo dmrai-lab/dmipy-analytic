@@ -67,3 +67,22 @@ def test_the_segment_twin_is_its_definition_to_float32_rounding():
         mag = mag + prims[0] + 3.0 * (rr * rr * prims[1] + 2.0 * rr * prims[2] + prims[3])
     c = (1.0 - (a / b) ** 2) / 4.0
     assert np.all(np.abs(got - want) <= K * EPS32 * (c * mag)[:, None])
+
+
+def test_a_segment_is_the_line_up_close_and_a_dipole_far_away():
+    """The twin of `segment_basis`, in its own float32: a very long segment seen from beside its middle is the infinite
+    cylinder's outside formula; a short one seen from far away is the point dipole of its moment (the isotropic
+    channels: `A L (I - 3 r r^T) / 4 pi r^3`); a line cut into pieces sums to the line."""
+    a, b = 1.0e-6, 1.5e-6; u = np.array([0.3, -0.2, 1.0]); u /= np.linalg.norm(u)
+    rng = np.random.default_rng(3); v = rng.normal(size=3); rv = v - (v @ u) * u; rv *= 6e-6 / np.linalg.norm(rv)
+    long_ = np.asarray(twins.segment_basis(rv, u, -1.0, 1.0, a, b)); inf_ = np.asarray(twins.hollow_cylinder_basis(rv, u, a, b))
+    np.testing.assert_allclose(long_[1:], inf_[1:], rtol=0, atol=1e-6 * np.abs(inf_[1:]).max())
+    L = 2e-6; zc = 60e-6; r = rv + zc * u; rhat = r / np.linalg.norm(r); A = np.pi * (b ** 2 - a ** 2)   # (L / r)^2 = 1e-3; float32 holds a 2 um piece at 60 um
+    far = np.asarray(twins.segment_basis(rv, u, -zc - L / 2, -zc + L / 2, a, b))
+    dip = A * L * (np.eye(3) - 3 * np.outer(rhat, rhat)) / (4 * np.pi * np.linalg.norm(r) ** 3)
+    want = np.array([dip[0, 0], dip[1, 1], dip[0, 1], dip[0, 2], dip[1, 2]])                 # zz is the trace's
+    np.testing.assert_allclose(far[1:6], want, rtol=5e-3, atol=2e-3 * np.abs(want).max())
+    cuts = np.linspace(-40e-6, 40e-6, 9)
+    whole = np.asarray(twins.segment_basis(rv, u, cuts[0], cuts[-1], a, b))
+    pieces = sum(np.asarray(twins.segment_basis(rv, u, z1, z2, a, b)) for z1, z2 in zip(cuts[:-1], cuts[1:]))
+    np.testing.assert_allclose(pieces, whole, rtol=0, atol=1e-6 * np.abs(whole).max())
