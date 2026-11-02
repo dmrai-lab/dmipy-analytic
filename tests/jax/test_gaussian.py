@@ -105,3 +105,5 @@ def test_powder_averages():
            gaussian.zeppelin_powder_average(b, d_par, d_perp), exp_rtol((b * d_perp).max(), 2, 1) + 22 * U32)
     assert float(jgaussian.zeppelin_powder_average(jnp.asarray(b[:3]), d_par, d_par)[0]) == pytest.approx(
         float(gaussian.ball(b[:3], d_par)[0]), rel=3 * U32 * 100)
+    # an oblate tensor is outside the twin's domain: NaN, not a finite value of another tensor
+    assert np.all(np.isnan(np.asarray(jgaussian.zeppelin_powder_average(b, d_perp, d_par))))

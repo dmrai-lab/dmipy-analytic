@@ -21,3 +21,27 @@ def exp_rtol(exponent, n_rounded, n_operations, ulps=EXP_ULPS):
     rounded to float32 by ``n_operations`` multiplications, divisions and additions of terms of one sign:
     ``(exponent (n_rounded + n_operations) + 2 ulps) U32``."""
     return (exponent * (n_rounded + n_operations) + 2 * ulps) * U32
+
+
+U64 = 2.0 ** -53
+"""The unit roundoff of float64."""
+
+BESSEL_OPERATIONS = 200
+"""The rounding operations of ``jax.scipy.special.bessel_jn`` (Zhang and Jin's ``BJNDD``): a backward recurrence of
+``n_iter = 50`` steps of three operations each, followed by the normalisation by a sum of ``n_iter`` terms, so that
+its absolute error on the unit scale of the Bessel functions is at most ``4 n_iter U``."""
+
+
+def x64():
+    """A context manager that enables float64 in JAX, for the twins whose terms overflow or cancel in float32."""
+    import jax
+    enable = getattr(jax, "enable_x64", None)
+    if enable is None:                       # jax < 0.9: the experimental spelling
+        from jax.experimental import enable_x64 as enable
+    return enable()
+
+
+def chain_rtol(operations, conditioning=1.0, unit=U32):
+    """The relative error bound of a result computed by ``operations`` rounding operations on a chain that
+    amplifies relative errors by at most ``conditioning``: ``conditioning * operations * unit``."""
+    return conditioning * operations * unit

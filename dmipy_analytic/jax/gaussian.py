@@ -78,11 +78,13 @@ def stick_powder_average(b, diffusivity):
 
 def zeppelin_powder_average(b, diffusivity_par, diffusivity_perp):
     """The twin of :func:`dmipy_analytic.gaussian.zeppelin_powder_average` for a prolate tensor
-    (``diffusivity_par >= diffusivity_perp``; the oblate average needs ``erfi``, which JAX does not provide). At
-    equal diffusivities it is the ball."""
+    (``diffusivity_par >= diffusivity_perp``; at equal diffusivities it is the ball). Its domain ends there: the oblate
+    average needs ``erfi``, which JAX does not provide, and the twin returns NaN for it, never a finite value of the
+    wrong tensor."""
     exp_bl = jnp.exp(-b * diffusivity_perp)
     sqrt_bl = jnp.sqrt(b * jnp.abs(diffusivity_par - diffusivity_perp))
     safe_sqrt_bl = jnp.where(sqrt_bl > 0, sqrt_bl, jnp.ones_like(sqrt_bl))
     anisotropic = exp_bl * jnp.sqrt(jnp.pi) * jax.scipy.special.erf(safe_sqrt_bl) / (2.0 * safe_sqrt_bl)
     isotropic = jnp.exp(-b * diffusivity_par)
-    return jnp.where(diffusivity_par > diffusivity_perp, anisotropic, isotropic)
+    return jnp.where(diffusivity_par > diffusivity_perp, anisotropic,
+                     jnp.where(diffusivity_par == diffusivity_perp, isotropic, jnp.nan))
