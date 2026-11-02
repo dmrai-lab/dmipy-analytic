@@ -29,7 +29,10 @@ ones their engines need.
 - **NumPy definitions, JAX twins.** The NumPy float64 form is the definition. `dmipy_analytic.jax.<module>.<form>` is the
   same form with the same arguments in `jax.numpy` for `jit`, `grad` and `vmap` (`gaussian`, `restricted`, `exchange`,
   `relaxation`, `fields`), held to its definition by a test at a tolerance derived from the float32 rounding of its
-  operations. The sphere's Callaghan series has no twin.
+  operations. The sphere's Callaghan series has no twin. The zeppelin's powder average
+  (`gaussian.zeppelin_powder_average`) covers the prolate, the spherical and the oblate tensor: where JAX has no `erfi`,
+  the oblate average is a Gauss-Legendre rule of 58 nodes with a proved bound, 2^-53 relative for
+  b (D_perp - D_par) <= 64, and the twin returns NaN beyond.
 - **NumPy at import.** `import dmipy_analytic` needs NumPy alone. A form that needs a special function imports SciPy inside
   the function (the `special` extra), and the twins need the `jax` extra; a call whose extra is missing is refused with its
   `pip install` spelling.
