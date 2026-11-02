@@ -16,7 +16,8 @@ pip install dmipy-analytic[jax]        # dmipy_analytic.jax: the same forms for 
 
 The modules: `constants` (the physical constants), `harmonics` (the real spherical-harmonic basis and its rotations),
 `orientation` (the Watson and Bingham kernels), `gaussian` (free diffusion, the stick, the zeppelin, the tensor),
-`restricted` (the plane, cylinder and sphere pores: the eigenmode method and the closed forms), `exchange` (exchanging
+`restricted` (the plane, cylinder and sphere pores: the eigenmode method and the closed forms; the surface of a straight
+tube of any outline), `exchange` (exchanging
 compartments, permeable membranes), `relaxation` (relaxation, surface relaxivity, magnetization exchange between
 pools), `epg` (extended phase graphs) and `fields` (the fields of simple shapes of susceptibility); `dmipy_analytic.jax`
 holds the JAX twins, module by module.
