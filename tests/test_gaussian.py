@@ -121,3 +121,15 @@ def test_the_powder_average_of_a_spherical_zeppelin_is_the_ball_and_of_the_stick
     assert gaussian.zeppelin_powder_average(b, 1.1e-9, 1.1e-9) == pytest.approx(gaussian.ball(b, 1.1e-9), rel=1e-13)
     assert gaussian.zeppelin_powder_average(b, 1.7e-9, 0.0) == pytest.approx(
         gaussian.stick_powder_average(b, 1.7e-9), rel=1e-12)
+
+
+def test_the_squared_cosine_forms_are_the_forms_at_a_gradient_in_the_plane_of_the_axis():
+    """A gradient at the angle ``theta`` to the axis has ``cos2 = cos^2 theta`` and ``sin2 = sin^2 theta``."""
+    axis = np.array([0.0, 0.0, 1.0])
+    theta = np.linspace(0.0, np.pi / 2, 7)
+    n = np.stack([np.sin(theta), np.zeros_like(theta), np.cos(theta)], axis=1)
+    b = np.full_like(theta, 2e9)
+    cos2, sin2 = np.cos(theta) ** 2, np.sin(theta) ** 2
+    assert gaussian.stick_squared_cosine(b, cos2, 1.7e-9) == pytest.approx(gaussian.stick(b, n, axis, 1.7e-9), rel=1e-14)
+    assert gaussian.zeppelin_squared_cosines(b, cos2, sin2, 1.7e-9, 0.5e-9) == pytest.approx(
+        gaussian.zeppelin(b, n, axis, 1.7e-9, 0.5e-9), rel=1e-14)

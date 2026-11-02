@@ -107,3 +107,14 @@ def test_powder_averages():
         float(gaussian.ball(b[:3], d_par)[0]), rel=3 * U32 * 100)
     # an oblate tensor is outside the twin's domain: NaN, not a finite value of another tensor
     assert np.all(np.isnan(np.asarray(jgaussian.zeppelin_powder_average(b, d_perp, d_par))))
+
+
+def test_squared_cosine_forms():
+    theta = np.linspace(0.0, np.pi / 2, 30)
+    cos2, sin2 = np.cos(theta) ** 2, np.sin(theta) ** 2
+    d_par, d_perp = 2.4e-9, 0.7e-9
+    x_max = (B[:30] * d_par).max()
+    _close(jgaussian.stick_squared_cosine(B[:30], cos2, d_par), gaussian.stick_squared_cosine(B[:30], cos2, d_par),
+           exp_rtol(x_max, 4, 2))
+    _close(jgaussian.zeppelin_squared_cosines(B[:30], cos2, sin2, d_par, d_perp),
+           gaussian.zeppelin_squared_cosines(B[:30], cos2, sin2, d_par, d_perp), exp_rtol(x_max, 5, 4))

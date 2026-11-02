@@ -8,8 +8,9 @@ import jax
 import jax.numpy as jnp
 
 __all__ = [
-    "ball", "stick", "stick_btensor", "zeppelin", "zeppelin_btensor", "tensor", "tensor_btensor",
-    "time_dependent_diffusivity", "temporal_zeppelin", "stick_powder_average", "zeppelin_powder_average",
+    "ball", "stick", "stick_squared_cosine", "stick_btensor", "zeppelin", "zeppelin_squared_cosines",
+    "zeppelin_btensor", "tensor", "tensor_btensor", "time_dependent_diffusivity", "temporal_zeppelin",
+    "stick_powder_average", "zeppelin_powder_average",
 ]
 
 
@@ -21,7 +22,12 @@ def ball(b, diffusivity):
 def stick(b, direction, axis, diffusivity):
     """The twin of :func:`dmipy_analytic.gaussian.stick`."""
     cos_theta = jnp.sum(direction * axis, axis=-1)
-    return jnp.exp(-b * diffusivity * cos_theta ** 2)
+    return stick_squared_cosine(b, cos_theta ** 2, diffusivity)
+
+
+def stick_squared_cosine(b, cos2, diffusivity):
+    """The twin of :func:`dmipy_analytic.gaussian.stick_squared_cosine`."""
+    return jnp.exp(-b * diffusivity * cos2)
 
 
 def stick_btensor(btensor, axis, diffusivity):
@@ -35,7 +41,12 @@ def zeppelin(b, direction, axis, diffusivity_par, diffusivity_perp):
     mag_par = jnp.sum(direction * axis, axis=-1)
     mag_sq = jnp.sum(direction ** 2, axis=-1)
     mag_perp_sq = jnp.maximum(0.0, mag_sq - mag_par ** 2)
-    return jnp.exp(-b * (diffusivity_par * mag_par ** 2 + diffusivity_perp * mag_perp_sq))
+    return zeppelin_squared_cosines(b, mag_par ** 2, mag_perp_sq, diffusivity_par, diffusivity_perp)
+
+
+def zeppelin_squared_cosines(b, cos2, sin2, diffusivity_par, diffusivity_perp):
+    """The twin of :func:`dmipy_analytic.gaussian.zeppelin_squared_cosines`."""
+    return jnp.exp(-b * (diffusivity_par * cos2 + diffusivity_perp * sin2))
 
 
 def zeppelin_btensor(btensor, axis, diffusivity_par, diffusivity_perp):

@@ -18,8 +18,9 @@ import numpy as np
 from ._extras import need
 
 __all__ = [
-    "ball", "stick", "stick_btensor", "zeppelin", "zeppelin_btensor", "tensor", "tensor_btensor",
-    "time_dependent_diffusivity", "temporal_zeppelin", "stick_powder_average", "zeppelin_powder_average",
+    "ball", "stick", "stick_squared_cosine", "stick_btensor", "zeppelin", "zeppelin_squared_cosines",
+    "zeppelin_btensor", "tensor", "tensor_btensor", "time_dependent_diffusivity", "temporal_zeppelin",
+    "stick_powder_average", "zeppelin_powder_average",
 ]
 
 
@@ -59,7 +60,26 @@ def stick(b, direction, axis, diffusivity):
     gradient (``B = b n n^T``). Source: Behrens et al. (2003), Magn. Reson. Med. 50:1077, the anisotropic compartment
     of Eq. 1 with ``d_perp = 0``.
     """
-    return np.exp(-b * diffusivity * np.dot(direction, axis) ** 2)
+    return stick_squared_cosine(b, np.dot(direction, axis) ** 2, diffusivity)
+
+
+def stick_squared_cosine(b, cos2, diffusivity):
+    r"""The attenuation of the stick at a given squared cosine of the angle between the gradient and its axis,
+    ``exp(-b D cos^2(theta))``.
+
+    Parameters
+    ----------
+    b : array_like
+        The b-value, s/m^2.
+    cos2 : array_like
+        The squared cosine of the angle ``theta`` between the gradient direction and the axis.
+    diffusivity : float
+        The diffusivity along the axis, m^2/s.
+
+    The form of :func:`stick` in the angle alone, for the axis-aligned (zonal) evaluation of the signal at the sampling
+    angles of a rotational-harmonic expansion. Assumptions and source as :func:`stick`.
+    """
+    return np.exp(-b * diffusivity * cos2)
 
 
 def stick_btensor(btensor, axis, diffusivity):
@@ -104,7 +124,26 @@ def zeppelin(b, direction, axis, diffusivity_par, diffusivity_perp):
     mag_par = np.sum(direction * axis, axis=-1)
     mag_sq = np.sum(direction ** 2, axis=-1)
     mag_perp_sq = np.maximum(0.0, mag_sq - mag_par ** 2)
-    return np.exp(-b * (diffusivity_par * mag_par ** 2 + diffusivity_perp * mag_perp_sq))
+    return zeppelin_squared_cosines(b, mag_par ** 2, mag_perp_sq, diffusivity_par, diffusivity_perp)
+
+
+def zeppelin_squared_cosines(b, cos2, sin2, diffusivity_par, diffusivity_perp):
+    r"""The attenuation of the zeppelin at given squared components of the gradient direction along and perpendicular
+    to its axis, ``exp(-b (D_par cos2 + D_perp sin2))``.
+
+    Parameters
+    ----------
+    b : array_like
+        The b-value, s/m^2.
+    cos2, sin2 : array_like
+        The squared components of the unit gradient direction along the axis and perpendicular to it.
+    diffusivity_par, diffusivity_perp : float
+        The diffusivity along and perpendicular to the axis, m^2/s.
+
+    The form of :func:`zeppelin` in the angle alone, for the axis-aligned (zonal) evaluation of the signal at the
+    sampling angles of a rotational-harmonic expansion. Assumptions and source as :func:`zeppelin`.
+    """
+    return np.exp(-b * (diffusivity_par * cos2 + diffusivity_perp * sin2))
 
 
 def zeppelin_btensor(btensor, axis, diffusivity_par, diffusivity_perp):
