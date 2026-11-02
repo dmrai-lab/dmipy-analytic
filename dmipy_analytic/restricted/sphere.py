@@ -264,7 +264,7 @@ def gaussian_phase_waveform(G, dt, diameter, diffusivity, n_roots=100, gamma=GAM
 
     phi = 0.0
     for c in range(components.shape[1]):
-        G_f64 = components[:, c]
+        G_f64 = np.ascontiguousarray(components[:, c])     # one contiguous waveform per component (the dot products)
         for k in range(len(mu_k)):
             lkd = lam_k[k] * D
             decay_step = np.exp(-lkd * dt)

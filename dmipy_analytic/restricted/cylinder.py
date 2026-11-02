@@ -197,7 +197,7 @@ def gaussian_phase_waveform(G, dt, diameter, diffusivity, n_roots=100, gamma=GAM
     104:350-364 (the Gaussian-phase signal of an arbitrary waveform); Xu J et al. (2009), J. Magn. Reson. 200:189-197,
     Eq. 3.
     """
-    G_f64 = np.asarray(G, dtype=np.float64)
+    G_f64 = np.array(G, dtype=np.float64)                  # a contiguous copy (the dot products)
     n_t = len(G_f64)
     R = diameter / 2.0
     D = diffusivity
