@@ -60,20 +60,20 @@ def test_sgp_is_the_spectral_sum_of_the_balls_modes(tau):
     assert sphere.sgp(q, tau, d, D) == pytest.approx(_spectral_sum(q, tau, d), rel=1e-6)
 
 
+def test_sgp_of_the_ground_state_alone_is_the_long_time_form():
+    """One radial and one angular mode is the constant mode, which the series skips: only the uniform-sphere structure
+    factor remains, at any diffusion time."""
+    d = 8e-6
+    q = np.array([0.0, 0.4e5, 1.0e5, 2.0e5])
+    assert sphere.sgp(q, 0.006, d, D, n_roots=1, n_functions=1) == pytest.approx(sphere.sgp_long_time(q, d), rel=1e-12)
+
+
 def test_sgp_limits_and_zero_q():
     d = 8e-6
     q = np.array([0.0, 0.4e5, 1.0e5, 2.0e5])
     assert sphere.sgp(q, 100.0, d, D) == pytest.approx(sphere.sgp_long_time(q, d), rel=1e-9)
     assert sphere.sgp(q, 0.01, d, D)[0] == 1.0
     assert sphere.sgp(np.float64(1.0e5), 0.01, d, D).shape == ()
-
-
-def test_the_tabulated_roots_are_those_of_the_derivative_of_the_first_spherical_bessel_function():
-    roots = sphere.GAUSSIAN_PHASE_ROOTS
-    assert len(roots) == 100 and not roots.flags.writeable
-    assert special.spherical_jn(1, roots[:30], derivative=True) == pytest.approx(0.0, abs=2e-9)
-    # each entry is rounded to the decimals it prints, at most seven (the roots above 100): half a unit of the last
-    assert np.all(np.abs(roots - sphere_neumann_roots(1, 100)) <= 5e-8)
 
 
 def _pgse(G, delta, Delta, steps_per_pulse):

@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 
 from ...constants import GAMMA
-from ...restricted.sphere import GAUSSIAN_PHASE_ROOTS
+from ...restricted.matrix_method import sphere_neumann_roots
 
 __all__ = ["sgp_long_time", "gaussian_phase", "gaussian_phase_waveform"]
 
@@ -27,7 +27,7 @@ def gaussian_phase(G, delta, Delta, diameter, diffusivity, n_roots=100, gamma=GA
     """The twin of :func:`dmipy_analytic.restricted.sphere.gaussian_phase`."""
     R = diameter / 2.0
     D = diffusivity
-    roots = jnp.asarray(GAUSSIAN_PHASE_ROOTS[:n_roots])
+    roots = jnp.asarray(sphere_neumann_roots(1, n_roots))
     delta = jnp.asarray(delta)[..., None]
     Delta = jnp.asarray(Delta)[..., None]
 
@@ -61,7 +61,7 @@ def gaussian_phase_waveform(G, dt, diameter, diffusivity, n_roots=100, gamma=GAM
     R = diameter / 2.0
     D = diffusivity
 
-    mu_k = jnp.asarray(GAUSSIAN_PHASE_ROOTS[:n_roots])
+    mu_k = jnp.asarray(sphere_neumann_roots(1, n_roots))
     lam_k = (mu_k / R) ** 2
     B_k = 2.0 * (R / mu_k) ** 2 / (mu_k ** 2 - 2.0)
 
