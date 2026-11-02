@@ -11,40 +11,9 @@ import numpy as np
 
 from .._extras import need
 from ..constants import GAMMA
+from .matrix_method import sphere_neumann_roots
 
-__all__ = ["sgp_long_time", "sgp", "GAUSSIAN_PHASE_ROOTS", "gaussian_phase", "gaussian_phase_waveform"]
-
-GAUSSIAN_PHASE_ROOTS = np.array([
-    2.081575978, 5.940369990, 9.205840145, 12.40444502,
-    15.57923641, 18.74264558, 21.89969648, 25.05282528,
-    28.20336100, 31.35209173, 34.49951492, 37.64596032,
-    40.79165523, 43.93676147, 47.08139741, 50.22565165,
-    53.36959180, 56.51327045, 59.65672900, 62.80000055,
-    65.94311190, 69.08608495, 72.22893775, 75.37168540,
-    78.51434055, 81.65691380, 84.79941440, 87.94185005,
-    91.08422750, 94.22655255, 97.36883035, 100.5110653,
-    103.6532613, 106.7954217, 109.9375497, 113.0796480,
-    116.2217188, 119.3637645, 122.5057870, 125.6477880,
-    128.7897690, 131.9317315, 135.0736768, 138.2156061,
-    141.3575204, 144.4994207, 147.6413080, 150.7831829,
-    153.9250463, 157.0668989, 160.2087413, 163.3505741,
-    166.4923978, 169.6342129, 172.7760200, 175.9178194,
-    179.0596116, 182.2013968, 185.3431756, 188.4849481,
-    191.6267147, 194.7684757, 197.9102314, 201.0519820,
-    204.1937277, 207.3354688, 210.4772054, 213.6189378,
-    216.7606662, 219.9023907, 223.0441114, 226.1858287,
-    229.3275425, 232.4692530, 235.6109603, 238.7526647,
-    241.8943662, 245.0360648, 248.1777608, 251.3194542,
-    254.4611451, 257.6028336, 260.7445198, 263.8862038,
-    267.0278856, 270.1695654, 273.3112431, 276.4529189,
-    279.5945929, 282.7362650, 285.8779354, 289.0196041,
-    292.1612712, 295.3029367, 298.4446006, 301.5862631,
-    304.7279241, 307.8695837, 311.0112420, 314.1528990,
-])
-"""The first 100 roots of ``j_1'(x) = 0`` (the solutions of ``J_{3/2}(x) / x = J_{5/2}(x)``), tabulated to ten digits
-by Balinov et al. (1993), J. Magn. Reson. A 104:17 for the Gaussian-phase signal of the sphere (``x`` up to ``100 pi``)."""
-GAUSSIAN_PHASE_ROOTS.setflags(write=False)
-
+__all__ = ["sgp_long_time", "sgp", "gaussian_phase", "gaussian_phase_waveform"]
 
 def sgp_long_time(q, diameter):
     r"""The signal inside a sphere in the short-gradient-pulse limit at a diffusion time long enough for the spins to
@@ -77,39 +46,22 @@ def sgp_long_time(q, diameter):
     return np.where(q != 0, E, 1.0)
 
 
-def _spherical_jn_prime_roots(n, n_roots):
-    """The first ``n_roots`` positive roots of ``d/dx j_n(x) = 0``, bracketed on a grid of six points per unit ``x``
-    up to ``(n_roots + n + 2) pi`` and refined by Brent's method."""
-    special = need("scipy.special")
-    brentq = need("scipy.optimize").brentq
-    xmax = (n_roots + n + 2) * np.pi
-    xs = np.linspace(1e-6, xmax, int(xmax * 6) + 2)
-    f = special.spherical_jn(n, xs, derivative=True)
-    roots = []
-    for i in range(len(xs) - 1):
-        if f[i] == 0.0:
-            roots.append(xs[i])
-        elif f[i] * f[i + 1] < 0:
-            roots.append(brentq(
-                lambda x: special.spherical_jn(n, x, derivative=True),
-                xs[i], xs[i + 1]))
-        if len(roots) >= n_roots:
-            break
-    return np.array(roots[:n_roots])
+@lru_cache(maxsize=None)
+def _callaghan_roots(n_roots, n_functions):
+    """The roots ``alpha[n, k]`` of ``j_n'(x) = 0`` for the orders ``n = 0 ... n_functions - 1``
+    (:func:`dmipy_analytic.restricted.matrix_method.sphere_neumann_roots`); the order ``n = 0`` starts with the
+    constant mode ``alpha = 0``."""
+    alpha = np.array([sphere_neumann_roots(n, n_roots) for n in range(n_functions)])
+    alpha.setflags(write=False)
+    return alpha
 
 
 @lru_cache(maxsize=None)
-def _callaghan_roots(n_roots, n_functions):
-    """The roots ``alpha[n, k]`` of ``j_n'(x) = 0`` for the orders ``n = 0 ... n_functions - 1``; the order ``n = 0``
-    starts with the constant mode ``alpha = 0``."""
-    alpha = np.zeros((n_functions, n_roots))
-    for n in range(n_functions):
-        if n == 0:
-            alpha[0, 1:] = _spherical_jn_prime_roots(0, n_roots - 1)
-        else:
-            alpha[n, :] = _spherical_jn_prime_roots(n, n_roots)
-    alpha.setflags(write=False)
-    return alpha
+def _gaussian_phase_roots(n_roots):
+    """The first ``n_roots`` roots of ``j_1'(x) = 0``, the solutions of ``J_{3/2}(x) / x = J_{5/2}(x)``."""
+    roots = sphere_neumann_roots(1, n_roots)
+    roots.setflags(write=False)
+    return roots
 
 
 def sgp(q, tau, diameter, diffusivity, n_roots=25, n_functions=16):
@@ -191,18 +143,19 @@ def gaussian_phase(G, delta, Delta, diameter, diffusivity, n_roots=100, gamma=GA
     diffusivity : float
         The diffusivity inside the sphere, m^2/s.
     n_roots : int
-        The number of roots summed, at most 100.
+        The number of roots summed.
     gamma : float
         The gyromagnetic ratio, rad/(s T).
 
     Assumes impermeable walls and that the phase accumulated by the spins is Gaussian distributed, which holds when
     many wall collisions occur during a pulse (``delta >> R^2/D``); the matrix method is exact beyond it. The roots
-    are :data:`GAUSSIAN_PHASE_ROOTS`. Source: Murday JS, Cotts RM (1968), J. Chem. Phys. 48:4938-4945 (the sphere);
+    are those of :func:`dmipy_analytic.restricted.matrix_method.sphere_neumann_roots` for ``l = 1``. Source: Murday JS,
+    Cotts RM (1968), J. Chem. Phys. 48:4938-4945 (the sphere);
     Balinov et al. (1993), J. Magn. Reson. A 104:17, Eqs. 8-9.
     """
     D = diffusivity
     radius = diameter / 2
-    roots = GAUSSIAN_PHASE_ROOTS[:n_roots]
+    roots = _gaussian_phase_roots(n_roots)
     delta = np.asarray(delta, dtype=float)[..., None]
     Delta = np.asarray(Delta, dtype=float)[..., None]
 
@@ -243,7 +196,7 @@ def gaussian_phase_waveform(G, dt, diameter, diffusivity, n_roots=100, gamma=GAM
     diffusivity : float
         The diffusivity inside the sphere, m^2/s.
     n_roots : int
-        The number of roots summed, at most 100.
+        The number of roots summed.
     gamma : float
         The gyromagnetic ratio, rad/(s T).
 
@@ -258,7 +211,7 @@ def gaussian_phase_waveform(G, dt, diameter, diffusivity, n_roots=100, gamma=GAM
     R = diameter / 2.0
     D = diffusivity
 
-    mu_k = np.asarray(GAUSSIAN_PHASE_ROOTS[:n_roots], dtype=np.float64)
+    mu_k = _gaussian_phase_roots(n_roots)
     lam_k = (mu_k / R) ** 2
     B_k = 2.0 * (R / mu_k) ** 2 / (mu_k ** 2 - 2.0)
 
