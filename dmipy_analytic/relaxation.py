@@ -300,6 +300,62 @@ def surface_relaxation(rho, surface_to_volume, tau):
     return np.exp(-rho * surface_to_volume * np.asarray(tau, dtype=float))
 
 
+def plane_robin_roots(c, n_roots):
+    r"""The first ``n_roots`` roots ``xi_n`` of ``xi tan(xi) = c`` (``c >= 0``), one in each interval
+    ``[(n - 1) pi, (n - 1) pi + pi/2)``: the even eigenmodes ``cos(xi_n x / a)`` of two plates at ``x = +/- a`` with the
+    Robin condition ``D m' = -/+ rho m`` and ``c = rho a / D``. Found by bisection of ``xi sin(xi) - c cos(xi)`` (no
+    poles) to the last bit; at ``c = 0`` they are ``(n - 1) pi``."""
+    c = float(c)
+    if not np.isfinite(c) or c < 0:
+        raise ValueError(f"c = rho a / D is a finite non-negative number, not {c!r}")
+    n = np.arange(int(n_roots), dtype=np.float64)
+    lo, hi = n * np.pi, n * np.pi + 0.5 * np.pi
+    if c == 0.0:
+        return lo
+    sign_lo = np.sign(lo * np.sin(lo) - c * np.cos(lo))
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        f = mid * np.sin(mid) - c * np.cos(mid)
+        same = np.sign(f) == sign_lo
+        lo, hi = np.where(same, mid, lo), np.where(same, hi, mid)
+    return 0.5 * (lo + hi)
+
+
+def surface_relaxation_plane(tau, thickness, diffusivity, rho, n_terms=400):
+    r"""The magnetisation left between two plates with surface relaxivity at a time ``tau`` after a uniform start, the
+    exact eigenmode series ``sum_n 2 sin^2(xi_n) / (xi_n (xi_n + sin(xi_n) cos(xi_n))) exp(-D xi_n^2 tau / a^2)`` with
+    ``xi_n tan(xi_n) = rho a / D`` (:func:`plane_robin_roots`) and ``a`` half the separation.
+
+    Parameters
+    ----------
+    tau : float or array_like
+        The time, s.
+    thickness : float
+        The separation of the plates, m.
+    diffusivity : float
+        The diffusivity between them, m^2/s.
+    rho : float
+        The surface relaxivity of both plates, m/s (the Robin condition ``D dm/dn = -rho m`` at each).
+    n_terms : int
+        The modes summed; the weights fall as ``2 / xi_n^2``, so the series at ``tau = 0`` is one to about
+        ``2 / (pi^2 n_terms)`` and any ``tau > 0`` converges faster.
+
+    Exact for every ``rho a / D``: the fast-diffusion limit ``exp(-rho (2/d) tau)`` (:func:`surface_relaxation`) is its
+    first term at ``rho a / D << 1``, and ``rho -> inf`` is the absorbing (Dirichlet) plates. Assumes impermeable plates
+    of one relaxivity, one diffusivity and a uniform magnetisation at the start. Source: Brownstein KS, Tarr CE (1979),
+    Phys. Rev. A 19:2446, the planar pore (their Eqs. 4-8, the eigenvalue condition ``xi tan(xi) = rho a / D``).
+    """
+    a = 0.5 * float(thickness)
+    xi = plane_robin_roots(float(rho) * a / float(diffusivity), n_terms)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        weight = np.where(xi > 0, 2.0 * np.sin(xi) ** 2 / (xi * (xi + np.sin(xi) * np.cos(xi))), 0.0)
+    if xi[0] == 0.0:
+        weight[0] = 1.0                                   # no relaxivity: the uniform mode alone
+    tau = np.asarray(tau, dtype=np.float64)
+    rates = float(diffusivity) * (xi / a) ** 2
+    return np.sum(weight * np.exp(-np.multiply.outer(tau, rates)), axis=-1)
+
+
 def _gamma_average_of_surface_relaxation(a, beta, c):
     r"""``E_d[exp(-c/d)]`` for ``d ~ Gamma(shape a, rate beta)``: ``2 (beta c)^(a/2) K_a(2 sqrt(beta c)) / Gamma(a)``,
     one for ``c <= 0``."""

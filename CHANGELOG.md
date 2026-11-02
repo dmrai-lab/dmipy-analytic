@@ -5,6 +5,16 @@ the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **The one-dimensional Bloch-Torrey equation** (`bloch_torrey.BlochTorrey1D`): `dm/dt = D m'' - [R2(x) + i omega(x) +
+  i gamma (G(t) + g0) x] m` on layers between two walls, with any number of membranes (`D m' = kappa [m]`, a surface
+  relaxivity on their faces), Robin walls, `R2` and `omega` per layer, a background gradient `g0` and the 180 as a
+  conjugation; cell-centred finite volumes, the diffusion half-steps in the eigenbasis of the symmetrised operator and
+  the potential applied exactly (a Strang split), second order in the cells and the step. Checked against the matrix
+  method (a sealed and an absent membrane), the Brownstein-Tarr series (Robin walls; a membrane between equal layers),
+  the two-site Karger limit and the Airy decay rate of the localisation regime next to a wall. The JAX twin runs the
+  same steps.
+- **The Brownstein-Tarr series of two plates** (`relaxation.surface_relaxation_plane`, `relaxation.plane_robin_roots`):
+  the exact eigenmode series of the magnetisation between plates with surface relaxivity, for every `rho a / D`.
 - **Diffusion on the surface of a straight tube** (`restricted.surface`): the echo of water confined to the surface of a
   circular tube, the model of myelin water in the aqueous gaps between the lamellae (Canales-Rodriguez et al. 2026,
   Phys. Med. Biol. 71:215006), and of a tube of any closed outline (a polygon through given points), for any
