@@ -54,6 +54,21 @@ standard error and the number of comparisons is visible.
 | dispersion x restriction (6) | Watson-dispersed cylinders (SH of the GPA cylinder) | [`dmipy-fit/dmipy_fit/signal_models/tests/test_sh_dispersion.py::test_watson_mc_validation`](https://github.com/dmrai-lab/dmipy-fit/blob/main/dmipy_fit/signal_models/tests/test_sh_dispersion.py) (a cylinder pack replayed over a Watson cone of axes against the dispersed GPA): marked **slow**, deselected in CI; [`dmipy-fit/dmipy_fit/signal_models/tests/test_cylinder_fixture_ogse_dispersed.py::test_ogse_dispersed_vs_mc_fixture`](https://github.com/dmrai-lab/dmipy-fit/blob/main/dmipy_fit/signal_models/tests/test_cylinder_fixture_ogse_dispersed.py) compares stored Monte-Carlo signals, not a pack | slow only |
 | surface x lumen exchange | | | later |
 
+## In review
+
+The 1-D Bloch-Torrey reference ([dmipy-analytic#14](https://github.com/dmrai-lab/dmipy-analytic/pull/14),
+`bloch_torrey.BlochTorrey1D`, against the matrix method, the Brownstein-Tarr series, the two-site Karger limit and the
+Airy rate of the localisation regime) and the replay checks against it
+([dmipy-replay#30](https://github.com/dmrai-lab/dmipy-replay/pull/30), `tests/test_cross_tier.py`, two committed
+8000-walker packs, tolerance `z se + e_ref` with `z` Bonferroni over 59 comparisons) fill these cells:
+
+| cross term | test | result |
+|---|---|---|
+| restriction x internal gradient (1) | `dmipy-replay/tests/test_cross_tier.py::test_a_background_gradient_between_plates_is_the_exact_signal_by_the_effective_waveform`, `::test_a_linear_field_between_plates_is_the_exact_signal_by_the_field_channel`, `::test_a_linear_field_between_plates_dephases_a_gradient_echo_as_the_exact_signal` | agrees by both routes (the effective waveform, the field channel), max abs(z) 1.44 over 27 comparisons |
+| compartments x exchange (the slab, C1) | `::test_the_permeable_slab_is_the_exact_signal[C1-*]`, `::test_the_permeable_slab_under_pgse_is_the_exact_signal` | agrees, max abs(z) 0.11 |
+| relaxivity x exchange (2) | `::test_the_permeable_slab_is_the_exact_signal[C2-*]` (the membrane's faces) | agrees, max abs(z) 1.13 |
+| compartments x exchange x field (the slab, C3) | `::test_the_permeable_slab_is_the_exact_signal[C3 3T-*]`, `[C3 7T-*]` | **fails**: the derived field band (2 modes over 50 ms) keeps 16 % of the spin echo's cross-membrane dephasing at 20 ms (z = 217 at 7 T) and doubles a 10 ms gradient echo's (z = -11); the same walk with 64 field modes agrees (abs(z) < 0.9) |
+
 ## Gaps and weak checks
 
 * **The permeable slab certifies nothing in CI.** No test in dmipy-analytic, dmipy-replay, dmipy-sim or dmipy-fit replays a slab pack against the 1-D
