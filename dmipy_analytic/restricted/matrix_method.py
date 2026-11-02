@@ -59,19 +59,28 @@ __all__ = ["MatrixPore", "matrix_restricted_signal", "matrix_restricted_batch", 
 
 def cylinder_neumann_roots(m, n_roots):
     """The first ``n_roots`` non-negative roots of ``J_m'(x) = 0``; ``m = 0`` includes the constant mode at 0: the
-    Neumann eigenvalues of the unit disk, ``lambda = x^2`` for the mode ``J_m(x r) cos(m theta)``."""
+    Neumann eigenvalues of the unit disk, ``lambda = x^2`` for the mode ``J_m(x r) cos(m theta)``. ``n_roots`` is at
+    least 1; for ``m = 0`` one root is the constant mode alone."""
     special = need("scipy.special")
+    if n_roots < 1:
+        raise ValueError(f"n_roots must be at least 1, not {n_roots}")
     if m == 0:
-        return np.concatenate([[0.0], special.jnp_zeros(0, n_roots - 1)])
+        return np.concatenate([[0.0], special.jnp_zeros(0, n_roots - 1)]) if n_roots > 1 else np.zeros(1)
     return special.jnp_zeros(m, n_roots)
 
 
 def sphere_neumann_roots(l, n_roots):
     """The first ``n_roots`` non-negative roots of ``j_l'(x) = 0``; ``l = 0`` includes the constant mode at 0: the
     Neumann eigenvalues of the unit ball, ``lambda = x^2`` for the mode ``j_l(x r) P_l(cos theta)``. Bracketed on a grid
-    of 40,000 points and refined by Brent's method."""
+    of 40,000 points and refined by Brent's method. ``n_roots`` is at least 1; for ``l = 0`` one root is the constant
+    mode alone."""
     special = need("scipy.special")
     brentq = need("scipy.optimize").brentq
+    if n_roots < 1:
+        raise ValueError(f"n_roots must be at least 1, not {n_roots}")
+    wanted = n_roots - 1 if l == 0 else n_roots               # the constant mode of l = 0 is the first of the n_roots
+    if wanted == 0:
+        return np.zeros(1)
     xs = np.linspace(1e-6, 4 * (n_roots + l + 2) + 20, 40000)
     sign = np.sign(special.spherical_jn(l, xs, derivative=True))
     roots = []
@@ -82,7 +91,7 @@ def sphere_neumann_roots(l, n_roots):
             continue
         if not roots or r - roots[-1] > 1e-3:
             roots.append(r)
-        if len(roots) >= (n_roots - 1 if l == 0 else n_roots):
+        if len(roots) >= wanted:
             break
     roots = np.asarray(roots)
     return np.concatenate([[0.0], roots]) if l == 0 else roots
