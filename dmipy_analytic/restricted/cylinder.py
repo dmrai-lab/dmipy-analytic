@@ -81,7 +81,7 @@ def sgp(q, tau, diameter, diffusivity, n_roots=20, n_functions=50):
     Assumes impermeable walls and gradient pulses short against the diffusion time. The modes are the Neumann
     eigenfunctions ``J_m(alpha r / R) cos(m phi)`` with ``J_m'(alpha) = 0`` and the series is truncated at
     ``n_roots x n_functions`` terms. It needs scipy (the ``special`` extra). Source: Callaghan PT (1995), J. Magn.
-    Reson. A 113:53-59, Eqs. 16-17 (the cylindrical pore); Neuman CH (1974), J. Chem. Phys. 60:4508.
+    Reson. A 113:53-59 (the cylindrical pore); Neuman CH (1974), J. Chem. Phys. 60:4508.
     """
     special = need("scipy.special")
     shape = np.shape(q)
@@ -147,7 +147,7 @@ def gaussian_phase(G, delta, Delta, diameter, diffusivity, n_roots=100, gamma=GA
     Assumes impermeable walls and that the phase accumulated by the spins is Gaussian distributed, which holds when
     many wall collisions occur during a pulse (``delta >> R^2/D``); the matrix method is exact beyond it. It needs
     scipy (the ``special`` extra). Source: Van Gelderen P, DesPres D, van Zijl PCM, Moonen CTW (1994), J. Magn.
-    Reson. B 103:255-260, Eq. 7; the Gaussian phase approximation of Neuman (1974), J. Chem. Phys. 60:4508.
+    Reson. B 103:255-260; the Gaussian phase approximation of Neuman (1974), J. Chem. Phys. 60:4508.
     """
     roots = _gaussian_phase_roots(n_roots)
     D = diffusivity
@@ -432,7 +432,7 @@ def capped_sgp(q_perp, q_par, tau, diameter, length, diffusivity, n_roots_cylind
         The modes of the two series.
 
     Assumes the restriction across and along the axis are independent. Source: Callaghan (1995), J. Magn. Reson. A
-    113:53, Eqs. 8-9 along the axis and 16-17 across.
+    113:53 (the planar pore along the axis, the cylindrical pore across).
     """
     return (plane.sgp(q_par, tau, length, diffusivity, n_roots_plane)
             * sgp(q_perp, tau, diameter, diffusivity, n_roots_cylinder, n_functions_cylinder))
