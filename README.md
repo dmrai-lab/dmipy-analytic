@@ -14,4 +14,11 @@ pip install dmipy-analytic[special]    # the forms that need scipy's special fun
 pip install dmipy-analytic[jax]        # dmipy_analytic.jax: the same forms for jit, grad and vmap
 ```
 
+The modules: `constants` (the physical constants), `harmonics` (the real spherical-harmonic basis and its rotations),
+`orientation` (the Watson and Bingham kernels), `gaussian` (free diffusion, the stick, the zeppelin, the tensor),
+`restricted` (the plane, cylinder and sphere pores: the eigenmode method and the closed forms), `exchange` (exchanging
+compartments, permeable membranes), `relaxation` (relaxation, surface relaxivity, magnetization exchange between
+pools), `epg` (extended phase graphs) and `fields` (the fields of simple shapes of susceptibility); `dmipy_analytic.jax`
+holds the JAX twins, module by module.
+
 Licence: Apache-2.0.

@@ -33,3 +33,6 @@ Source = "https://github.com/dmrai-lab/dmipy-analytic"
 
 [tool.setuptools.packages.find]
 include = ["dmipy_analytic*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
