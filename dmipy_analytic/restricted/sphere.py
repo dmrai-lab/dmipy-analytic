@@ -30,7 +30,7 @@ def sgp_long_time(q, diameter):
     Assumes impermeable walls, gradient pulses short against the time to diffuse across the sphere
     (``delta << R^2/D``) and a diffusion time long against it: the signal is the squared modulus of the Fourier
     transform of the uniform density in the ball, the diffraction pattern of a sphere. Source: Balinov B, Jonsson B,
-    Linse P, Soderman O (1993), J. Magn. Reson. A 104:17-25, Eq. 5.
+    Linse P, Soderman O (1993), J. Magn. Reson. A 104:17-25.
     """
     q = np.asarray(q, dtype=float)
     radius = diameter / 2
@@ -87,7 +87,7 @@ def sgp(q, tau, diameter, diffusivity, n_roots=25, n_functions=16):
     Assumes impermeable walls and gradient pulses short against the diffusion time. The factor 6 and the ground
     state together satisfy completeness, ``E(tau -> 0) = 1``. At the resonance ``x = alpha_nk`` the factor
     ``x j_n'(x) / (x^2 - alpha^2)`` is replaced by its limit ``-(alpha^2 - n(n+1)) j_n(x) / (2 alpha^2)``. It needs
-    scipy (the ``special`` extra). Source: Callaghan PT (1995), J. Magn. Reson. A 113:53-59, Eqs. 22-24 (the spherical
+    scipy (the ``special`` extra). Source: Callaghan PT (1995), J. Magn. Reson. A 113:53-59 (the spherical
     pore); Grebenkov DS (2007), Rev. Mod. Phys. 79:1077 for the eigenfunctions.
     """
     special = need("scipy.special")
@@ -151,7 +151,7 @@ def gaussian_phase(G, delta, Delta, diameter, diffusivity, n_roots=100, gamma=GA
     many wall collisions occur during a pulse (``delta >> R^2/D``); the matrix method is exact beyond it. The roots
     are those of :func:`dmipy_analytic.restricted.matrix_method.sphere_neumann_roots` for ``l = 1``. Source: Murday JS,
     Cotts RM (1968), J. Chem. Phys. 48:4938-4945 (the sphere);
-    Balinov et al. (1993), J. Magn. Reson. A 104:17, Eqs. 8-9.
+    Balinov et al. (1993), J. Magn. Reson. A 104:17.
     """
     D = diffusivity
     radius = diameter / 2

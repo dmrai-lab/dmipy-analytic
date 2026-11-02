@@ -14,8 +14,8 @@ per interval, with a relaxation time ``T2`` and ``T1`` per pool and the radiofre
 
 Sources: Karger J, Pfeifer H, Heink W (1988), Adv. Magn. Reson. 12:1-89 (the two-site exchange of the diffusion
 attenuation); Karger J (1985), Adv. Colloid Interface Sci. 23:129-148; Jelescu IO et al. (2022), NeuroImage 256:119277
-(NEXI: the model for neurites and the extra-neurite space, Eqs. 1-4); the matrix propagators are the exchange
-generalisation of the multi-interval Bloch-Torrey solution.
+(NEXI: the anisotropic Karger signal of the neurites and the extra-neurite space, Eqs. 3-6); the matrix propagators are
+the exchange generalisation of the multi-interval Bloch-Torrey solution.
 
 The propagators need scipy's matrix exponential (the ``special`` extra), imported inside them.
 """
@@ -59,7 +59,7 @@ def karger(exponent_intra, exponent_extra, kappa, f, diffusion_time):
     (``kappa f / (1 - f)`` back), and a dephasing that accumulates over the diffusion time as if constant (the
     narrow-pulse picture). At ``kappa = 0`` the weights are the volume fractions, ``f`` on the larger exponent when
     it is the intra-cellular one, and a vanishing eigenvalue gap gives the mean exponent with weight one half.
-    Source: Karger et al. (1988), Adv. Magn. Reson. 12:1; Jelescu et al. (2022), NeuroImage 256:119277, Eq. 3.
+    Source: Karger et al. (1988), Adv. Magn. Reson. 12:1; Jelescu et al. (2022), NeuroImage 256:119277, Eqs. 3-5.
     """
     EPS = 1e-10
     kee = kappa * f / (1.0 - f)

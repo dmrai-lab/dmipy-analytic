@@ -56,7 +56,7 @@ def sgp(q, tau, diameter, diffusivity, n_roots=40):
 
     Assumes impermeable walls and gradient pulses short against the diffusion time. A term of the series whose
     denominator vanishes (a resonance ``q a = xi``) is dropped from the sum. Source: Callaghan PT (1995), J. Magn.
-    Reson. A 113:53-59, Eqs. 8-9 (the planar pore).
+    Reson. A 113:53-59 (the planar pore).
     """
     shape = np.shape(q)
     q = np.atleast_1d(np.asarray(q, dtype=float))

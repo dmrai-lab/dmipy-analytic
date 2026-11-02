@@ -9,7 +9,7 @@ the zeppelin is axially symmetric about its axis, and the tensor is general. The
 stick and of the zeppelin is the mean over all axis directions at one b-value.
 
 Sources: Stejskal EO, Tanner JE (1965), J. Chem. Phys. 42:288-292 (the Gaussian attenuation of a pulsed gradient);
-Basser PJ, Mattiello J, LeBihan D (1994), Biophys. J. 66:259-267 (the tensor, Eq. 1 and the b-matrix attenuation);
+Basser PJ, Mattiello J, LeBihan D (1994), Biophys. J. 66:259-267 (the tensor and the b-matrix attenuation);
 Behrens TEJ et al. (2003), Magn. Reson. Med. 50:1077-1088 (the ball and the stick); Panagiotaki E et al. (2012),
 NeuroImage 59:2241-2254 (the zeppelin); Kaden E et al. (2016), NeuroImage 139:346-359 (the powder averages).
 """
@@ -58,7 +58,7 @@ def stick(b, direction, axis, diffusivity):
 
     Assumes no diffusion perpendicular to the axis (the radius is zero) and Gaussian diffusion along it; a pulsed
     gradient (``B = b n n^T``). Source: Behrens et al. (2003), Magn. Reson. Med. 50:1077, the anisotropic compartment
-    of Eq. 1 with ``d_perp = 0``.
+    with ``d_perp = 0``.
     """
     return stick_squared_cosine(b, np.dot(direction, axis) ** 2, diffusivity)
 
@@ -96,7 +96,7 @@ def stick_btensor(btensor, axis, diffusivity):
 
     Assumes no diffusion perpendicular to the axis and Gaussian diffusion along it. It is :func:`stick` for
     ``B = b n n^T`` and holds for any tensor-valued encoding. Source: Behrens et al. (2003), Magn. Reson. Med.
-    50:1077, with the b-matrix attenuation of Basser et al. (1994), Biophys. J. 66:259 (Eq. 1).
+    50:1077, with the b-matrix attenuation of Basser et al. (1994), Biophys. J. 66:259.
     """
     return np.exp(-diffusivity * np.einsum("i,mij,j->m", axis, btensor, axis))
 
@@ -119,7 +119,7 @@ def zeppelin(b, direction, axis, diffusivity_par, diffusivity_perp):
     Assumes Gaussian diffusion with a tensor symmetric about the axis and a pulsed gradient. The perpendicular part
     of the direction is its squared length less the squared projection, floored at zero. Source: Panagiotaki et al.
     (2012), NeuroImage 59:2241, the zeppelin (Gaussian anisotropic) compartment; Basser et al. (1994), Biophys. J.
-    66:259, Eq. 1.
+    66:259.
     """
     mag_par = np.sum(direction * axis, axis=-1)
     mag_sq = np.sum(direction ** 2, axis=-1)
@@ -162,7 +162,7 @@ def zeppelin_btensor(btensor, axis, diffusivity_par, diffusivity_perp):
     Assumes Gaussian diffusion with a tensor symmetric about the axis; the encoding enters through ``B`` alone, so
     planar and spherical tensor encodings are covered. The axially symmetric tensor is
     ``D_perp I + (D_par - D_perp) u u^T``, so ``<B, D> = D_perp tr B + (D_par - D_perp) u^T B u``. Source: Basser
-    et al. (1994), Biophys. J. 66:259, Eq. 1; Westin CF et al. (2016), NeuroImage 135:345-362 (the b-tensor
+    et al. (1994), Biophys. J. 66:259; Westin CF et al. (2016), NeuroImage 135:345-362 (the b-tensor
     attenuation).
     """
     b_trace = np.trace(btensor, axis1=1, axis2=2)
@@ -182,7 +182,7 @@ def tensor(b, direction, diffusion_tensor):
     diffusion_tensor : array_like, shape (3, 3)
         The symmetric diffusion tensor ``D``, m^2/s.
 
-    Assumes Gaussian diffusion. Source: Basser et al. (1994), Biophys. J. 66:259, Eq. 1 with ``B = b n n^T``.
+    Assumes Gaussian diffusion. Source: Basser et al. (1994), Biophys. J. 66:259, with ``B = b n n^T``.
     """
     return np.exp(-b * np.einsum("mi,ij,mj->m", direction, diffusion_tensor, direction))
 
@@ -197,7 +197,7 @@ def tensor_btensor(btensor, diffusion_tensor):
     diffusion_tensor : array_like, shape (3, 3)
         The symmetric diffusion tensor ``D``, m^2/s.
 
-    Assumes Gaussian diffusion. Source: Basser et al. (1994), Biophys. J. 66:259, Eq. 1: the attenuation is the
+    Assumes Gaussian diffusion. Source: Basser et al. (1994), Biophys. J. 66:259: the attenuation is the
     exponential of minus the b-matrix contracted with ``D``.
     """
     return np.exp(-np.einsum("mij,ij->m", btensor, diffusion_tensor))
@@ -219,7 +219,7 @@ def time_dependent_diffusivity(diffusivity_inf, A, delta, Delta):
     Assumes a long-time expansion in which the diffusivity approaches its limit as ``ln(t)/t`` (the signature of
     short-range disorder in one dimension, as the extra-axonal space of a packed bundle has perpendicular to the
     axons) and gradient pulses of finite width ``delta``. Source: Burcaw LM, Fieremans E, Novikov DS (2015),
-    NeuroImage 114:18-37, the pulsed-gradient diffusivity of Eq. 7 (the ``ln(t)/t`` law integrated over rectangular
+    NeuroImage 114:18-37, the pulsed-gradient diffusivity (the ``ln(t)/t`` law integrated over rectangular
     pulses).
     """
     return diffusivity_inf + A * (np.log(Delta / delta) + 3. / 2.) / (Delta - delta / 3.)
@@ -245,7 +245,7 @@ def temporal_zeppelin(b, direction, axis, diffusivity_par, diffusivity_inf, A, d
         The gradient pulse duration and separation, s.
 
     Assumes the parallel diffusivity is time independent and the perpendicular one follows
-    :func:`time_dependent_diffusivity`. Source: Burcaw et al. (2015), NeuroImage 114:18, Eq. 7; the compartment of
+    :func:`time_dependent_diffusivity`. Source: Burcaw et al. (2015), NeuroImage 114:18; the compartment of
     Novikov DS et al. (2019), NMR Biomed. 32:e3998.
     """
     diffusivity_perp = time_dependent_diffusivity(diffusivity_inf, A, delta, Delta)
@@ -266,7 +266,7 @@ def stick_powder_average(b, diffusivity):
 
     Assumes a uniform distribution of the axis over the sphere and a pulsed gradient. The average of
     ``exp(-b D t^2)`` over ``t = cos(theta)`` uniform in ``[-1, 1]`` is the error function. It needs scipy (the
-    ``special`` extra). Source: Kaden et al. (2016), NeuroImage 139:346, the stick compartment of Eq. 7.
+    ``special`` extra). Source: Kaden et al. (2016), NeuroImage 139:346, Eq. 7 (the stick's spherical mean).
     """
     erf = need("scipy.special").erf
     b = np.asarray(b, dtype=float)

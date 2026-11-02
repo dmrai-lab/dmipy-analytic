@@ -239,7 +239,7 @@ def transverse_decay(tau, T2):
         The transverse relaxation time, s.
 
     Assumes mono-exponential relaxation, independent of the diffusion encoding. Source: Bloch F (1946), Phys. Rev.
-    70:460, Eq. 8 (the transverse decay); Hahn EL (1950), Phys. Rev. 80:580 (the spin echo).
+    70:460 (the transverse decay); Hahn EL (1950), Phys. Rev. 80:580 (the spin echo).
     """
     return np.exp(-tau / T2)
 
@@ -254,7 +254,7 @@ def longitudinal_decay(tau, T1):
     T1 : float or array_like
         The longitudinal relaxation time, s.
 
-    Assumes mono-exponential relaxation toward saturation. Source: Bloch F (1946), Phys. Rev. 70:460, Eq. 8 (the
+    Assumes mono-exponential relaxation toward saturation. Source: Bloch F (1946), Phys. Rev. 70:460 (the
     longitudinal component); Hahn EL (1950), Phys. Rev. 80:580 (the stimulated echo).
     """
     return np.exp(-tau / T1)
@@ -295,7 +295,7 @@ def surface_relaxation(rho, surface_to_volume, tau):
 
     Assumes the spins sample the whole pore many times within ``1/(rho S/V)`` (the relaxation is a pore-averaged
     rate ``rho S/V`` added to the bulk rate), so that it holds for ``rho a / D`` well below one, ``a`` the pore size.
-    Source: Brownstein KS, Tarr CE (1979), Phys. Rev. A 19:2446, Eq. 3 (the fast-diffusion limit).
+    Source: Brownstein KS, Tarr CE (1979), Phys. Rev. A 19:2446 (the fast-diffusion limit).
     """
     return np.exp(-rho * surface_to_volume * np.asarray(tau, dtype=float))
 
@@ -333,7 +333,7 @@ def surface_relaxation_gamma_cylinders(shape, scale, rho, tau, volume_weighted=T
     Assumes the fast-diffusion regime of :func:`surface_relaxation` in every cylinder and a Gamma distribution of
     diameters. The average is the integral ``int x^(a-1) exp(-beta x - c/x) dx``, whose value is the Bessel function
     of the second kind ``K_a``. It needs scipy (the ``special`` extra). Source: Gradshteyn IS, Ryzhik IM, *Table of
-    Integrals, Series, and Products*, 3.471.9; Brownstein and Tarr (1979), Phys. Rev. A 19:2446, Eq. 3.
+    Integrals, Series, and Products*, 3.471.9; Brownstein and Tarr (1979), Phys. Rev. A 19:2446.
     """
     a = shape + 2.0 if volume_weighted else shape
     beta = 1.0 / scale
@@ -360,7 +360,7 @@ def surface_relaxation_gamma_spheres(shape, scale, rho, tau, volume_weighted=Tru
         Weight the diameters by their volume (``a = shape + 3``); ``False`` is the number-weighted average.
 
     Assumes the fast-diffusion regime in every sphere and a Gamma distribution of diameters. It needs scipy (the
-    ``special`` extra). Source: Gradshteyn and Ryzhik, 3.471.9; Brownstein and Tarr (1979), Phys. Rev. A 19:2446, Eq. 3.
+    ``special`` extra). Source: Gradshteyn and Ryzhik, 3.471.9; Brownstein and Tarr (1979), Phys. Rev. A 19:2446.
     """
     a = shape + 3.0 if volume_weighted else shape
     beta = 1.0 / scale
