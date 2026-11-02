@@ -1,0 +1,155 @@
+{
+ "entries": {
+  "backward_rate": {
+   "kind": "float",
+   "value": "50.0"
+  },
+  "bloch_mcconnell_longitudinal": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a7",
+   "sha256": "84929c808a464f1794a25ef1ca7c8c389a9d5d26390bb7f3bbdf2179e44e9c6b",
+   "shape": [
+    5
+   ]
+  },
+  "bloch_mcconnell_longitudinal/saturated": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a8",
+   "sha256": "a1f524ff8b196c01389801ae477e75266a503854e9725a0da5a7868619b21b6f",
+   "shape": [
+    5
+   ]
+  },
+  "bloch_mcconnell_transverse": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a6",
+   "sha256": "a66a1806ff8a101b05baec06e76771d809af92c834c1ef515b18ef80712eea81",
+   "shape": [
+    5
+   ]
+  },
+  "bloch_mcconnell_transverse/one": {
+   "kind": "float",
+   "value": "0.862452267465336"
+  },
+  "bound_fraction": {
+   "kind": "float",
+   "value": "0.375"
+  },
+  "bound_fraction/zero": {
+   "kind": "float",
+   "value": "0.0"
+  },
+  "dwell_time_from_fraction": {
+   "kind": "float",
+   "value": "0.0058823529411764705"
+  },
+  "evolve_two_pool/0": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a2",
+   "sha256": "21416af9cddbdfa8dbe7522ae6f51c4a67b395fd6b7e216fc3e82f87833b9181",
+   "shape": [
+    7
+   ]
+  },
+  "evolve_two_pool/1": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a3",
+   "sha256": "9b48ad316a85009f21b003400a72fb9b46c9d4c85994976d191abf64839b1102",
+   "shape": [
+    7
+   ]
+  },
+  "evolve_two_pool/2": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a4",
+   "sha256": "66024cd6fb725819aba9653312106be95a7cdfec317afd335693f673ea5eeb84",
+   "shape": [
+    7
+   ]
+  },
+  "evolve_two_pool/3": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a5",
+   "sha256": "7390cd2c4b627b18365dbd1faf8d537780da5bb3e768de45d3dbb10717317c8d",
+   "shape": [
+    7
+   ]
+  },
+  "forward_rate": {
+   "kind": "float",
+   "value": "30.0"
+  },
+  "kappa_MT_from_forward_rate": {
+   "kind": "float",
+   "value": "1.5e-05"
+  },
+  "mt_z_spectrum": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a9",
+   "sha256": "9247bcdf85e8afc2eda0d2963ff00b96241e89c3d6068222515a347f6e50d193",
+   "shape": [
+    7
+   ]
+  },
+  "mt_z_spectrum/bound": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a10",
+   "sha256": "d63fea55201f36866d0222c45b6b296592ac3ee805fd6f33478c20a968c73d7c",
+   "shape": [
+    7
+   ]
+  },
+  "mt_z_spectrum/one": {
+   "kind": "float",
+   "value": "0.46597010689078683"
+  },
+  "refused/backward_rate": {
+   "kind": "str",
+   "value": "ValueError: dwell_time must be > 0, got 0.0"
+  },
+  "refused/fraction": {
+   "kind": "str",
+   "value": "ValueError: f_bound must be in (0,1), got 1.0"
+  },
+  "refused/kappa": {
+   "kind": "str",
+   "value": "ValueError: S_over_V must be > 0, got 0.0"
+  },
+  "refused/rate": {
+   "kind": "str",
+   "value": "ValueError: k_f must be > 0, got 0.0"
+  },
+  "two_pool_generator": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a0",
+   "sha256": "ac5fcf37a00cebd386790e1fbb50fbed41d37f00a472ad40a4a8ac61d081d085",
+   "shape": [
+    7,
+    7
+   ]
+  },
+  "two_pool_generator/M0b": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a1",
+   "sha256": "f3564a607e66b51a1a4a23e3ba2286e761478b983bb5c214e24495ca2a95fe2f",
+   "shape": [
+    7,
+    7
+   ]
+  }
+ },
+ "seconds": 0.690729008987546,
+ "status": "ok"
+}

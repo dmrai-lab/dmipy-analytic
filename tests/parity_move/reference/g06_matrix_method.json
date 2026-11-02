@@ -1,0 +1,435 @@
+{
+ "entries": {
+  "ANGULAR_NODES": {
+   "kind": "int",
+   "value": 2048
+  },
+  "DEFAULT_MODES": {
+   "kind": "str",
+   "value": "{'plane': 24, 'cylinder': (24, 18), 'sphere': (24, 18)}"
+  },
+  "RADIAL_NODES": {
+   "kind": "int",
+   "value": 4000
+  },
+  "cylinder/6e-06/(8, 6)/B": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a12",
+   "sha256": "651dd68ed2c0954472e82bab63807d8c6f48bb98997046f6cc5cdfe3e95b0b39",
+   "shape": [
+    54,
+    54
+   ]
+  },
+  "cylinder/6e-06/(8, 6)/lam": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a11",
+   "sha256": "ca0c4a567bc4e55a0c9f663a001db6ad9aa8d3801a1b220f45bb3201d337b76f",
+   "shape": [
+    54
+   ]
+  },
+  "cylinder/6e-06/(8, 6)/restricted_batch": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a13",
+   "sha256": "24fb5c04acffd15f67dfb89002c32f7e00450059a81d119272fbb10735a6f21d",
+   "shape": [
+    3
+   ]
+  },
+  "cylinder/6e-06/(8, 6)/restricted_signal": {
+   "kind": "float",
+   "value": "0.9898862160988098"
+  },
+  "cylinder/6e-06/(8, 6)/signal/ogse": {
+   "kind": "complex",
+   "value": "(0.9847551716578514-3.2786273695961654e-16j)"
+  },
+  "cylinder/6e-06/(8, 6)/signal/one_step": {
+   "kind": "complex",
+   "value": "(0.9999686755477121+0j)"
+  },
+  "cylinder/6e-06/(8, 6)/signal/pgse": {
+   "kind": "complex",
+   "value": "(0.9898862160988098+0j)"
+  },
+  "cylinder/6e-06/(8, 6)/signal/ramped": {
+   "kind": "complex",
+   "value": "(0.994348359953755+0j)"
+  },
+  "cylinder/6e-06/(8, 6)/signal/zero": {
+   "kind": "complex",
+   "value": "(1+0j)"
+  },
+  "cylinder/6e-06/None/B/bytes": {
+   "kind": "bytes",
+   "n": 32,
+   "sha256": "9e84f0634720287fb548a8543c62c2691c430388606a64017796ba17eb292dfe"
+  },
+  "cylinder/6e-06/None/B/dtype": {
+   "kind": "str",
+   "value": "<f8"
+  },
+  "cylinder/6e-06/None/B/shape": {
+   "kind": "list",
+   "value": "[450, 450]"
+  },
+  "cylinder/6e-06/None/lam/bytes": {
+   "kind": "bytes",
+   "n": 32,
+   "sha256": "561cbe27ca7d4cb77bccbe7be4ccd8aab054ab9922098ac4d10ee7907708f657"
+  },
+  "cylinder/6e-06/None/lam/dtype": {
+   "kind": "str",
+   "value": "<f8"
+  },
+  "cylinder/6e-06/None/lam/shape": {
+   "kind": "list",
+   "value": "[450]"
+  },
+  "cylinder/6e-06/None/restricted_batch": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a18",
+   "sha256": "93a924e7e4994f20edc2997d0cb1318172b0541c778cf16a823e65e645e0f968",
+   "shape": [
+    3
+   ]
+  },
+  "cylinder/6e-06/None/restricted_signal": {
+   "kind": "float",
+   "value": "0.9898862090855192"
+  },
+  "cylinder/6e-06/None/signal/ogse": {
+   "kind": "complex",
+   "value": "(0.9847550631932757-9.421716878899034e-17j)"
+  },
+  "cylinder/6e-06/None/signal/one_step": {
+   "kind": "complex",
+   "value": "(0.9999686750947178+0j)"
+  },
+  "cylinder/6e-06/None/signal/pgse": {
+   "kind": "complex",
+   "value": "(0.9898862090855192+0j)"
+  },
+  "cylinder/6e-06/None/signal/ramped": {
+   "kind": "complex",
+   "value": "(0.9943483559691211+0j)"
+  },
+  "cylinder/6e-06/None/signal/zero": {
+   "kind": "complex",
+   "value": "(1+0j)"
+  },
+  "cylinder_neumann_roots/0": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a0",
+   "sha256": "0441cfbe100d49e43a50ba573d5e9b27cf37de425314581ac8ca9e2992364ce4",
+   "shape": [
+    6
+   ]
+  },
+  "cylinder_neumann_roots/1": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a2",
+   "sha256": "831d14ddbaf0582c3cf63c1fc330a8fc6cbad7fe889f6f21c3c289a1128d9288",
+   "shape": [
+    6
+   ]
+  },
+  "cylinder_neumann_roots/2": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a4",
+   "sha256": "7a95848d530a2e65c99fa6f914ea8eadffeaf1caec6234e8eb5fc9b8d496bd1a",
+   "shape": [
+    6
+   ]
+  },
+  "cylinder_neumann_roots/3": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a6",
+   "sha256": "1685c9dec661f1cb417b14d9c2a7f3c6bf4d4273382d33e3e0ab5374038dbdac",
+   "shape": [
+    6
+   ]
+  },
+  "plane/1.2e-05/None/B/bytes": {
+   "kind": "bytes",
+   "n": 32,
+   "sha256": "8a12d9fa06ffa3d4758170e8abc4b0e1c8a6c396dfb018ced1227d75d109803a"
+  },
+  "plane/1.2e-05/None/B/dtype": {
+   "kind": "str",
+   "value": "<f8"
+  },
+  "plane/1.2e-05/None/B/shape": {
+   "kind": "list",
+   "value": "[25, 25]"
+  },
+  "plane/1.2e-05/None/lam/bytes": {
+   "kind": "bytes",
+   "n": 32,
+   "sha256": "dcd42b4b1e14cc32f471debb6c19209653609a1ad5e5d003e852292f6f5a629b"
+  },
+  "plane/1.2e-05/None/lam/dtype": {
+   "kind": "str",
+   "value": "<f8"
+  },
+  "plane/1.2e-05/None/lam/shape": {
+   "kind": "list",
+   "value": "[25]"
+  },
+  "plane/1.2e-05/None/restricted_batch": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a17",
+   "sha256": "06d7e92390c3b91ecf07ba12009477dfee9b8a55c62ada5232a1165a454f7519",
+   "shape": [
+    3
+   ]
+  },
+  "plane/1.2e-05/None/restricted_signal": {
+   "kind": "float",
+   "value": "0.8801737485972199"
+  },
+  "plane/1.2e-05/None/signal/ogse": {
+   "kind": "complex",
+   "value": "(0.9644415736671577+5.538104697055957e-16j)"
+  },
+  "plane/1.2e-05/None/signal/one_step": {
+   "kind": "complex",
+   "value": "(0.9998291747604678-1.7822071133252475e-18j)"
+  },
+  "plane/1.2e-05/None/signal/pgse": {
+   "kind": "complex",
+   "value": "(0.8801737485972199-4.9221837429218296e-24j)"
+  },
+  "plane/1.2e-05/None/signal/ramped": {
+   "kind": "complex",
+   "value": "(0.9408927666778395-2.5028720259708014e-24j)"
+  },
+  "plane/1.2e-05/None/signal/zero": {
+   "kind": "complex",
+   "value": "(1+0j)"
+  },
+  "plane/8e-06/16/B": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a9",
+   "sha256": "3b01a6886fdfe619a95f599b25aa49a0e8d902cdf0eea3b767e13c32c84dd1fc",
+   "shape": [
+    17,
+    17
+   ]
+  },
+  "plane/8e-06/16/lam": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a8",
+   "sha256": "b9e3af0502fb49e04fd88503d8606aeb32c9dba34fd10a5754ab83c38279007f",
+   "shape": [
+    17
+   ]
+  },
+  "plane/8e-06/16/restricted_batch": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a10",
+   "sha256": "0b279ac7dee5a1364214a49d2a915426af561897ed9998124a66d3be8f663f7a",
+   "shape": [
+    3
+   ]
+  },
+  "plane/8e-06/16/restricted_signal": {
+   "kind": "float",
+   "value": "0.9567874958596405"
+  },
+  "plane/8e-06/16/signal/ogse": {
+   "kind": "complex",
+   "value": "(0.9708484161278468+6.028164079019405e-16j)"
+  },
+  "plane/8e-06/16/signal/one_step": {
+   "kind": "complex",
+   "value": "(0.9999245671553538-1.1880512693275786e-18j)"
+  },
+  "plane/8e-06/16/signal/pgse": {
+   "kind": "complex",
+   "value": "(0.9567874958596405-7.191142797144383e-27j)"
+  },
+  "plane/8e-06/16/signal/ramped": {
+   "kind": "complex",
+   "value": "(0.9770224872161992-8.30937465805842e-27j)"
+  },
+  "plane/8e-06/16/signal/zero": {
+   "kind": "complex",
+   "value": "(1+0j)"
+  },
+  "refused/cylinder_int": {
+   "kind": "str",
+   "value": "ValueError: a cylinder has an angular and a radial mode index: n_modes is the pair (angular, radial), not 8"
+  },
+  "refused/plane_pair": {
+   "kind": "str",
+   "value": "ValueError: a plane has one mode index: n_modes is the count of cosine modes (an int), not (4, 4)"
+  },
+  "refused/shape": {
+   "kind": "str",
+   "value": "ValueError: a closed form is known for a plane, a cylinder and a sphere, not 'cube'"
+  },
+  "sphere/1e-05/(8, 6)/B": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a15",
+   "sha256": "c63ccc1f2d4d8aadcf446ff949128bcfc5cda1b78909a2097592f8218e1354e1",
+   "shape": [
+    54,
+    54
+   ]
+  },
+  "sphere/1e-05/(8, 6)/lam": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a14",
+   "sha256": "0089a205c02968595d010d749e89e2a83d27016ec29dfc97d18a4ada69ebbbcb",
+   "shape": [
+    54
+   ]
+  },
+  "sphere/1e-05/(8, 6)/restricted_batch": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a16",
+   "sha256": "7e06eb2e41c947fc30bc22c78a3fb6b353e860332122c8ad9b8fcc1a0224eb58",
+   "shape": [
+    3
+   ]
+  },
+  "sphere/1e-05/(8, 6)/restricted_signal": {
+   "kind": "float",
+   "value": "0.9617986542931936"
+  },
+  "sphere/1e-05/(8, 6)/signal/ogse": {
+   "kind": "complex",
+   "value": "(0.9708014659556741-4.544975507059235e-16j)"
+  },
+  "sphere/1e-05/(8, 6)/signal/one_step": {
+   "kind": "complex",
+   "value": "(0.999929349365344+0j)"
+  },
+  "sphere/1e-05/(8, 6)/signal/pgse": {
+   "kind": "complex",
+   "value": "(0.9617986542931936+0j)"
+  },
+  "sphere/1e-05/(8, 6)/signal/ramped": {
+   "kind": "complex",
+   "value": "(0.9794919816486262+0j)"
+  },
+  "sphere/1e-05/(8, 6)/signal/zero": {
+   "kind": "complex",
+   "value": "(1+0j)"
+  },
+  "sphere/1e-05/None/B/bytes": {
+   "kind": "bytes",
+   "n": 32,
+   "sha256": "279258e16c7bb3dc99e50ec78ea3710e8f5e75c25192f40eba6db80415734080"
+  },
+  "sphere/1e-05/None/B/dtype": {
+   "kind": "str",
+   "value": "<f8"
+  },
+  "sphere/1e-05/None/B/shape": {
+   "kind": "list",
+   "value": "[450, 450]"
+  },
+  "sphere/1e-05/None/lam/bytes": {
+   "kind": "bytes",
+   "n": 32,
+   "sha256": "3c2bb1d98f571096b338249aea08d7ba8a2d22cfc7813277a8e06528850d7750"
+  },
+  "sphere/1e-05/None/lam/dtype": {
+   "kind": "str",
+   "value": "<f8"
+  },
+  "sphere/1e-05/None/lam/shape": {
+   "kind": "list",
+   "value": "[450]"
+  },
+  "sphere/1e-05/None/restricted_batch": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a19",
+   "sha256": "311f6c5c84849dbdb4f3d84a06ceff0914e460a727f3e7334fab7057316b48ce",
+   "shape": [
+    3
+   ]
+  },
+  "sphere/1e-05/None/restricted_signal": {
+   "kind": "float",
+   "value": "0.9617986110409376"
+  },
+  "sphere/1e-05/None/signal/ogse": {
+   "kind": "complex",
+   "value": "(0.9708011955985294-6.288643650959047e-16j)"
+  },
+  "sphere/1e-05/None/signal/one_step": {
+   "kind": "complex",
+   "value": "(0.9999293468545115+0j)"
+  },
+  "sphere/1e-05/None/signal/pgse": {
+   "kind": "complex",
+   "value": "(0.9617986110409376+0j)"
+  },
+  "sphere/1e-05/None/signal/ramped": {
+   "kind": "complex",
+   "value": "(0.9794919565846986+0j)"
+  },
+  "sphere/1e-05/None/signal/zero": {
+   "kind": "complex",
+   "value": "(1+0j)"
+  },
+  "sphere_neumann_roots/0": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a1",
+   "sha256": "a16068c90a446cefe79582358b3b82b542c0ec60f758c6b8358d5243992acc06",
+   "shape": [
+    6
+   ]
+  },
+  "sphere_neumann_roots/1": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a3",
+   "sha256": "b5f1821dd9c0f21a3b9418ebfe6b77d31a8a18a73d32f61ff171aae0a3dd909d",
+   "shape": [
+    6
+   ]
+  },
+  "sphere_neumann_roots/2": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a5",
+   "sha256": "3e3b7838776eeb61253f77560d7724ed1ea85c0b8fc6a8d2e20e4ec84710f8bf",
+   "shape": [
+    6
+   ]
+  },
+  "sphere_neumann_roots/3": {
+   "dtype": "<f8",
+   "kind": "array",
+   "npz": "a7",
+   "sha256": "2a55480f489a06a42fb418b1c7997a5fbb4b1ad5667d74598d10d9f29207afe5",
+   "shape": [
+    6
+   ]
+  }
+ },
+ "seconds": 20.274305582017405,
+ "status": "ok"
+}

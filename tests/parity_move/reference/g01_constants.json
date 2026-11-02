@@ -1,0 +1,18 @@
+{
+ "entries": {
+  "GAMMA": {
+   "kind": "float",
+   "value": "267513000.0"
+  },
+  "GAMMA_BAR": {
+   "kind": "float",
+   "value": "42576016.2913422"
+  },
+  "MU0": {
+   "kind": "float",
+   "value": "1.2566370614359173e-06"
+  }
+ },
+ "seconds": 0.7406316020060331,
+ "status": "ok"
+}
