@@ -5,6 +5,16 @@ the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **Two exchanging pools under any sampled waveform** (`exchange.karger_waveform`): the generalised Karger equation
+  `dM/dt = (K - R(t) - |q(t)|^2 diag(D)) M` (Ning et al. 2018, Eq. 5) along an effective gradient, `T2` while transverse
+  and `T1` while stored, each step the exponential of its two-term Magnus exponent in closed form (fourth order; exact
+  without a gradient, without exchange or with equal diffusivities). Checked against the mixture of the pools, equal
+  pools, an eighth-order ODE solution (the error falls 16-fold per halving) and the narrow-pulse limit.
+- **Filter-exchange imaging** (`exchange.fexi_narrow_pulse`, `fexi_adc`, `fexi_signal`, `fexi_two_site`): the narrow-pulse
+  double-encoding signal of two pools (Ning et al. 2018, Eq. 7); the AXR model `ADC'(t_m) = ADC_eq [1 - sigma exp(-AXR
+  t_m)]` and its signal (Lasic et al. 2011; md-dmri `fexi11`), exact for two pools of equal `T1` at a small detection b
+  whatever the blocks, with `AXR = k_12 + k_21`; and the short-block two-site values of `ADC_eq`, `sigma` and `AXR`. The
+  JAX twins are held to the numpy forms in float64.
 - **The one-dimensional Bloch-Torrey equation** (`bloch_torrey.BlochTorrey1D`): `dm/dt = D m'' - [R2(x) + i omega(x) +
   i gamma (G(t) + g0) x] m` on layers between two walls, with any number of membranes (`D m' = kappa [m]`, a surface
   relaxivity on their faces), Robin walls, `R2` and `omega` per layer, a background gradient `g0` and the 180 as a
