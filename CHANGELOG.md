@@ -13,6 +13,12 @@ the project follows [Semantic Versioning](https://semver.org/).
   method (a sealed and an absent membrane), the Brownstein-Tarr series (Robin walls; a membrane between equal layers),
   the two-site Karger limit and the Airy decay rate of the localisation regime next to a wall. The JAX twin runs the
   same steps.
+- **A permeability that changes in time** (`BlochTorrey1D(permeability=, permeability_breakpoints=)`): piecewise
+  constant, every interior edge taking its next permeability at each breakpoint. The operator of each interval is built
+  once, and at a breakpoint (on a step boundary; one inside a step is refused) the state is carried into the next
+  interval's eigenbasis, so the restart is exact. Checked against the Brownstein-Tarr series of two equal layers
+  restarted on the new Robin modes at the breakpoint (the membrane opened, sealed, and changed tenfold). The JAX twin
+  carries the state at breakpoints on whole steps of the waveform.
 - **The Brownstein-Tarr series of two plates** (`relaxation.surface_relaxation_plane`, `relaxation.plane_robin_roots`):
   the exact eigenmode series of the magnetisation between plates with surface relaxivity, for every `rho a / D`.
 - **Diffusion on the surface of a straight tube** (`restricted.surface`): the echo of water confined to the surface of a

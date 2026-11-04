@@ -42,6 +42,24 @@ def test_the_twin_is_the_numpy_form_to_rounding(refocus, sub_steps):
     assert abs(got - want) <= (n * (4 * N + 4) + N) * U64, (got, want)
 
 
+def test_the_twin_carries_a_permeability_breakpoint():
+    """A permeability that changes twice (at whole steps of the waveform): the twin carries the state into each
+    interval's eigenbasis as the numpy form does, so the two differ by rounding alone (the two basis changes count as
+    two more products)."""
+    model = BlochTorrey1D([0.0, 2e-6, 4e-6], 2e-9, permeability=(1e-5, 1e-4, 0.0), permeability_breakpoints=(0.005, 0.012),
+                          R2=(12.5, 50.0), density=(1.0, 0.0), n_cells=64)
+    G = _waveform()
+    want = model.signal(G, 1e-4, refocus=(100,), sub_steps=2)
+    with x64():
+        got = complex(jbt.signal(model, jnp.asarray(G), 1e-4, refocus=(100,), sub_steps=2))
+    N = len(model.h)
+    n = len(G) * 2 + 1 + 2
+    assert abs(got - want) <= (n * (4 * N + 4) + N) * U64, (got, want)
+    with pytest.raises(ValueError, match="not on a boundary"):
+        jbt.signal(BlochTorrey1D([0.0, 2e-6, 4e-6], 2e-9, permeability=(1e-5, 1e-4), permeability_breakpoints=(0.00505,),
+                                 n_cells=16), jnp.asarray(G), 1e-4, sub_steps=2)
+
+
 def test_the_twin_is_differentiable_in_the_gradient():
     """The derivative of the echo's real part with respect to one gradient sample, against the central difference of
     the numpy form: a central difference of step ``h`` is exact to ``h^2 / 6`` times the third derivative (estimated by
