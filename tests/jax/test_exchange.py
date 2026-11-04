@@ -22,7 +22,7 @@ pytest.importorskip("scipy.linalg")
 
 from dmipy_analytic import exchange
 from dmipy_analytic.jax import exchange as jexchange
-from .rounding import U32, EXP_ULPS
+from .rounding import U32, U64, EXP_ULPS, exp_rtol, x64
 
 
 def _close(twin, form, rtol, atol=0.0):
@@ -88,3 +88,56 @@ def test_stimulated_echo_signal():
         twin = jexchange.stimulated_echo_signal(K, p["M0"], p["D"], p["T2"], p["T1"], 2.0e9, 0.015, 0.2, 0.015,
                                                 tau_90)
         _close(twin, form, c * U32)
+
+
+# ── the two-pool forms of a waveform and of FEXI, in float64 ────────────────────────────────────────────────────────
+#
+# Both run the same operations: per step the Magnus exponent (at most 12 rounded operations per entry) and its closed
+# 2 x 2 exponential (at most 16 more, the exponentials of float64 at most 2 ulps each), then a balanced tree of 2 x 2
+# products (3 operations per entry per level). The propagators are column-substochastic (an exchange generator less
+# non-negative rates), so an error in one factor is not amplified by the others and the errors of the n steps add:
+# the signal agrees to ``n (28 + 2 * 2 * 2) U64 + 3 log2(n) U64`` on its unit scale.
+
+def _wave():
+    blk = lambda g: np.r_[np.full(10, g), np.zeros(5), np.full(10, -g)]
+    G = np.r_[blk(0.06), np.zeros(50), -blk(0.04), 0.0]
+    st = np.zeros(G.size, bool)
+    st[25:75] = True
+    return np.stack([G * u for u in (1.0, 0.5, 0.0)])[:, :, None] * np.array([0.6, 0.0, 0.8]), st
+
+
+def test_karger_waveform():
+    G, st = _wave()
+    K = exchange.exchange_matrix(30.0, 0.4)
+    kw = dict(stored=st, T2=np.array([0.06, 0.09]), T1=np.array([0.9, 1.3]), sub_steps=2)
+    form = exchange.karger_waveform(G, 4e-4, [0.3e-9, 2e-9], K, [0.4, 0.6], **kw)
+    with x64():
+        twin = np.asarray(jexchange.karger_waveform(G, 4e-4, np.array([0.3e-9, 2e-9]), K, np.array([0.4, 0.6]), **kw))
+    n = (G.shape[1] - 1) * 2
+    assert np.all(np.abs(twin - form) <= (n * 36 + 3 * np.log2(n)) * U64), twin - form
+
+
+def test_fexi_narrow_pulse():
+    K = exchange.exchange_matrix(6.0, 0.4)
+    q = np.array([0.0, 1e5, 3e5])
+    form = exchange.fexi_narrow_pulse(q, 8e-3, 0.1, 0.5 * q, 8e-3, [0.3e-9, 2e-9], K, [0.4, 0.6])
+    with x64():
+        twin = np.asarray(jexchange.fexi_narrow_pulse(q, 8e-3, 0.1, 0.5 * q, 8e-3, np.array([0.3e-9, 2e-9]), K,
+                                                      np.array([0.4, 0.6])))
+    assert np.all(np.abs(twin - form) <= (3 * 36 + 3 * 2) * U64), twin - form
+
+
+def test_the_axr_forms():
+    """``fexi_adc``: a product of an exponential (whose argument is two rounded inputs and one product) with three
+    rounded inputs and two operations; ``fexi_signal`` one more exponential of that; ``fexi_two_site`` sums of two
+    terms and one quotient, the efficiency ``1 - ratio`` conditioned by ``1 / sigma``."""
+    t = np.array([0.01, 0.1, 0.5])
+    _close(jexchange.fexi_adc(t, 0.9e-9, 0.45, 4.0), exchange.fexi_adc(t, 0.9e-9, 0.45, 4.0),
+           exp_rtol(2.0, 2, 1) + 6 * U32)
+    b = np.array([0.0, 5e8, 1e9])
+    _close(jexchange.fexi_signal(b, t, True, 0.9e-9, 0.45, 4.0), exchange.fexi_signal(b, t, True, 0.9e-9, 0.45, 4.0),
+           exp_rtol(1.0, 5, 6) + 2 * EXP_ULPS * U32)
+    with x64():
+        twin = [float(v) for v in jexchange.fexi_two_site(0.4, 6.0, np.array([0.3e-9, 2e-9]), 1.2e9)]
+    form = exchange.fexi_two_site(0.4, 6.0, [0.3e-9, 2e-9], 1.2e9)
+    assert twin == pytest.approx(form, rel=40 * U64 / form[1])
