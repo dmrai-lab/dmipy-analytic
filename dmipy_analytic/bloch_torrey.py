@@ -27,8 +27,9 @@ symmetric Schur complement). The diffusion operator ``-H^-1 C`` (``H`` the cell 
 conductance matrix) is symmetrised, ``-H^-1/2 C H^-1/2 = U diag(lambda) U^T`` with ``lambda <= 0``, and each step of
 ``dt`` is the Strang split: half a step of diffusion in that eigenbasis, the potential ``R2 + i omega + i gamma G x``
 applied exactly (it is diagonal), half a step of diffusion. A permeability that changes at a breakpoint changes the
-operator there: the state, continuous in time, is carried from the old eigenbasis to the new one (``c' = U'^T U c``) at
-the start of the first step after the breakpoint, which lies on a step boundary, so the restart is exact.
+operator there: the state, continuous in time, is carried from one interval's eigenbasis into the next's
+(``c' = U'^T U c``) at the start of the first step after the breakpoint, which lies on a step boundary, so the restart
+is exact.
 
 **Its accuracy.** The scheme is second order in the cell width and in the step: refining either by two leaves a
 quarter of the error, so the change is three quarters of it. The cell count and the sub-steps per waveform sample are arguments, and the
