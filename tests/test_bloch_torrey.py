@@ -14,7 +14,9 @@ The independent routes:
 * Robin walls: the Brownstein-Tarr series of two plates (:func:`~dmipy_analytic.relaxation.surface_relaxation_plane`);
 * a membrane between two equal layers, every spin starting in the first: by symmetry the even part of the magnetisation
   never crosses and the odd part sees a Robin wall of relaxivity ``2 kappa`` (plus the membrane's own ``rho_e`` on
-  both parts), so each layer's population is a sum of two Brownstein-Tarr series, exactly;
+  both parts), so each layer's population is a sum of two Brownstein-Tarr series, exactly; and when the permeability
+  changes at a time ``t_b``, the odd part's series at ``t_b`` projected on the Robin modes of the new ``2 kappa'`` and
+  continued in them (the overlaps of two cosine families in closed form);
 * slow exchange and slow relaxation against diffusion: the two-site exchange of Karger's model
   (:func:`~dmipy_analytic.exchange.karger`), approached at first order in ``kappa a / D`` and ``R2 a^2 / D``;
 * a static gradient next to a wall: the localisation regime, the Hahn echo decaying at long times at the rate
@@ -200,3 +202,87 @@ def test_an_ill_posed_interval_is_refused(kwargs):
     kw.update(kwargs)
     with pytest.raises(ValueError):
         BlochTorrey1D(kw.pop("edges_m"), kw.pop("diffusivity"), **kw)
+
+
+def _robin_odd_part(a, kappas, t_b, t, n_modes=400):
+    """The odd part's share of the first of two equal layers of width ``a`` (every spin starting in it) at the times
+    ``t``, the permeability ``kappas[0]`` before ``t_b`` and ``kappas[1]`` after: the odd part ``+-1/2`` of the start
+    is the even (cosine) family of a plate pore of half-width ``a`` with the Robin relaxivity ``2 kappa``,
+    ``cos(xi x / a)``, ``xi tan xi = 2 kappa a / D`` (:func:`~dmipy_analytic.relaxation.plane_robin_roots`). Its
+    coefficients at ``t_b`` are projected on the second family by the overlaps ``int_0^a cos(xi x/a) cos(xi' x/a) dx``
+    in closed form, then continued in it. Returns the first layer's population, ``1/2`` plus the odd part's mass."""
+    from dmipy_analytic.relaxation import plane_robin_roots
+
+    def family(kappa):
+        xi = plane_robin_roots(2.0 * kappa * a / D, n_modes)
+        norm = a * (0.5 + 0.5 * np.sinc(2.0 * xi / np.pi))             # int_0^a cos^2; a at xi = 0 (a sealed membrane)
+        return xi, norm, D * (xi / a) ** 2, a * np.sinc(xi / np.pi)     # roots, norms, rates, the mode's mass
+
+    xi1, n1, r1, m1 = family(kappas[0])
+    xi2, n2, r2, m2 = family(kappas[1])
+    c1 = 0.5 * m1 / n1                                                  # the start +1/2 on the first family
+    p, q = xi1[:, None], xi2[None, :]
+    overlap = 0.5 * a * (np.sinc((p - q) / np.pi) + np.sinc((p + q) / np.pi))
+    c2 = (c1 * np.exp(-r1 * t_b)) @ overlap / n2                        # the state at t_b on the second family
+    t = np.asarray(t, dtype=np.float64)
+    before = (c1 * m1 * np.exp(-np.multiply.outer(np.minimum(t, t_b), r1))).sum(-1)
+    after = (c2 * m2 * np.exp(-np.multiply.outer(np.maximum(t - t_b, 0.0), r2))).sum(-1)
+    return 0.5 + np.where(t <= t_b, before, after) / a
+
+
+def test_a_permeability_that_keeps_its_value_at_a_breakpoint_is_the_constant_one():
+    """A breakpoint at which every edge keeps its permeability changes nothing but the eigenbasis the state is carried
+    in, which is the same one: the populations of three layers are the constant model's to rounding."""
+    edges, kappa = [0.0, 2e-6, 3e-6, 5e-6], (1e-5, 4e-5)
+    const = BlochTorrey1D(edges, D, permeability=kappa, density=(1.0, 0.0, 0.0), n_cells=120)
+    split = BlochTorrey1D(edges, D, permeability=(kappa, kappa), permeability_breakpoints=(0.004,),
+                          density=(1.0, 0.0, 0.0), n_cells=120)
+    for n_t in (10, 40, 60):
+        a = const.signal(np.zeros(n_t), 2e-4, by_layer=True)
+        b = split.signal(np.zeros(n_t), 2e-4, by_layer=True)
+        assert np.allclose(a, b, rtol=0, atol=1e-13), (n_t, a, b)
+
+
+@pytest.mark.parametrize("kappas", [(1e-5, 1e-4), (1e-4, 0.0), (0.0, 3e-5)])
+def test_a_step_change_of_permeability_is_the_restarted_brownstein_tarr_series(kappas):
+    """Two equal layers, every spin starting in the first, the permeability ``kappas[0]`` before ``t_b = 6 ms`` and
+    ``kappas[1]`` after (sealing the membrane, and opening a sealed one, among them): the populations at 2, 6, 10 and
+    40 ms against the odd part's series restarted on the new Robin modes at ``t_b`` (:func:`_robin_odd_part`), within
+    twice the scheme's own error (Richardson on the cells) and the series' truncation."""
+    a, dt, t_b = 2e-6, 2e-4, 0.006
+    n_t = (10, 30, 50, 200)
+    got = [np.array([BlochTorrey1D([0.0, a, 2 * a], D, permeability=kappas, permeability_breakpoints=(t_b,),
+                                   density=(1.0, 0.0), n_cells=n).signal(np.zeros(m), dt, by_layer=True).real
+                     for m in n_t]) for n in (100, 200, 400)]
+    e_cells = _second_order(got)
+    first = _robin_odd_part(a, kappas, t_b, np.array(n_t) * dt)
+    ref = np.stack([first, 1.0 - first], axis=-1)
+    tail = 2.0 / (np.pi ** 2 * 400)
+    assert np.all(np.abs(got[0] - ref) <= 2.0 * (e_cells + tail)), (got[0], ref, e_cells)
+
+
+def test_the_restart_is_needed():
+    """The same step change walked at the first permeability throughout misses the restarted series by far more than
+    the scheme's error: the comparison above resolves the change."""
+    a, dt, t_b = 2e-6, 2e-4, 0.006
+    stuck = BlochTorrey1D([0.0, a, 2 * a], D, permeability=1e-5, density=(1.0, 0.0), n_cells=200)
+    first = _robin_odd_part(a, (1e-5, 1e-4), t_b, 0.01)
+    assert abs(stuck.signal(np.zeros(50), dt, by_layer=True).real[0] - first) > 0.02
+
+
+@pytest.mark.parametrize("kwargs", [dict(permeability=(1e-5, 2e-5), permeability_breakpoints=(0.001, 0.002)),
+                                    dict(permeability=1e-5, permeability_breakpoints=(0.001,)),
+                                    dict(permeability=(1e-5, 2e-5), permeability_breakpoints=(-0.001,)),
+                                    dict(permeability=(1e-5, 2e-5, 3e-5), permeability_breakpoints=(0.002, 0.001)),
+                                    dict(permeability=((1e-5, 1e-5), 2e-5), permeability_breakpoints=(0.001,))])
+def test_an_ill_posed_permeability_schedule_is_refused(kwargs):
+    with pytest.raises(ValueError, match="permeability"):
+        BlochTorrey1D([0.0, 1e-6, 2e-6], D, **kwargs)
+
+
+def test_a_breakpoint_inside_a_step_is_refused():
+    bt = BlochTorrey1D([0.0, 1e-6, 2e-6], D, permeability=(1e-5, 2e-5), permeability_breakpoints=(0.00105,))
+    with pytest.raises(ValueError, match="not on a boundary"):
+        bt.signal(np.zeros(20), 1e-4)
+    bt.signal(np.zeros(20), 1e-4, sub_steps=2)                         # 1.05 ms is a whole number of 50 us steps
+
