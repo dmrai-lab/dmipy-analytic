@@ -276,7 +276,7 @@ def test_the_restart_is_needed():
                                     dict(permeability=(1e-5, 2e-5, 3e-5), permeability_breakpoints=(0.002, 0.001)),
                                     dict(permeability=((1e-5, 1e-5), 2e-5), permeability_breakpoints=(0.001,))])
 def test_an_ill_posed_permeability_schedule_is_refused(kwargs):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="permeability"):
         BlochTorrey1D([0.0, 1e-6, 2e-6], D, **kwargs)
 
 

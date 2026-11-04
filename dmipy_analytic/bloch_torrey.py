@@ -140,7 +140,8 @@ class BlochTorrey1D:
             raise ValueError(f"permeability_breakpoints are positive, strictly increasing times in seconds, not "
                              f"{permeability_breakpoints!r}")
         if breaks.size:
-            if isinstance(permeability, (str, bytes)) or np.ndim(permeability) == 0 or len(permeability) != breaks.size + 1:
+            if isinstance(permeability, (str, bytes)) or not hasattr(permeability, "__len__") \
+                    or len(permeability) != breaks.size + 1:
                 raise ValueError(f"with {breaks.size} permeability_breakpoints the permeability is a sequence of "
                                  f"{breaks.size + 1} entries, one per interval of time, not {permeability!r}")
             kappa = np.stack([_per_edge(k, n_edges, f"permeability[{j}]") for j, k in enumerate(permeability)])
