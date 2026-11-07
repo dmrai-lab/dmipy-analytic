@@ -20,13 +20,29 @@ the Robin condition ``D m' = +rho m`` at the left wall and ``D m' = -rho m`` at 
 ``rho = 0`` is a reflecting wall. An ideal 180-degree pulse conjugates the magnetisation, ``m -> conj(m)``; the
 gradient is the one played (its sign is not folded in), and so is the background, which does not switch off.
 
+**Bound pools on the faces.** A membrane may carry, on each of its two faces, a pool of spins bound to the surface (the
+macromolecular pool of magnetization transfer, or any surface-adsorbed state). The free water at a face binds at the
+reactivity ``k_on`` (m/s: the binding flux per unit free density at the face) and each bound spin returns to the same
+face after an exponential dwell of mean ``tau_b``; a bound spin does not diffuse, relaxes at ``R2b`` and precesses at
+``omega_b`` plus the field at the face. On the face ``-`` of an edge at ``x_e`` (the ``+`` face is the mirror):
+
+    J(x_e-) = kappa (m_- - m_+) + rho_e m_- + k_on m_- - b_- / tau_b,
+    db_-/dt = k_on m_- - b_- / tau_b - [R2b + i omega_b + i gamma (G(t) + g0) x_e] b_-,
+
+with ``b_-`` the bound magnetisation per unit area of the face. Without relaxation the bound pool of a face holds
+``k_on tau_b`` times the free density at the face at equilibrium. These are the Bloch-McConnell equations of a free
+and a bound pool, with the exchange local to the faces and the free pool's diffusion resolved.
+
 **The method.** Cell-centred finite volumes: each layer is divided into cells of (nearly) equal width, the flux across
 a face between two cells is the conductance of the two half-cells in series, and across a membrane or at a wall the
 face's nodes are eliminated from the resistor network of the half-cells, the permeability and the relaxivities (a
 symmetric Schur complement). The diffusion operator ``-H^-1 C`` (``H`` the cell widths, ``C`` the symmetric
 conductance matrix) is symmetrised, ``-H^-1/2 C H^-1/2 = U diag(lambda) U^T`` with ``lambda <= 0``, and each step of
 ``dt`` is the Strang split: half a step of diffusion in that eigenbasis, the potential ``R2 + i omega + i gamma G x``
-applied exactly (it is diagonal), half a step of diffusion. A permeability that changes at a breakpoint changes the
+applied exactly (it is diagonal), half a step of diffusion. A face with a bound pool joins its pool to the face node of
+the network (the conductance ``k_on`` to the pool, the release ``b / tau_b`` back into the node); the pools are states
+of their own, the exchange is reversible, and the operator on the cells and the pools is symmetrised by the
+equilibrium masses (a cell's width, a pool's ``k_on tau_b``), so the same eigenbasis and split carry it. A permeability that changes at a breakpoint changes the
 operator there: the state, continuous in time, is carried from one interval's eigenbasis into the next's
 (``c' = U'^T U c``) at the start of the first step after the breakpoint, which lies on a step boundary, so the restart
 is exact.
@@ -37,6 +53,8 @@ tests state the error of the defaults by refining both (Richardson), on every co
 
 The diffusion step needs the symmetric eigendecomposition of ``numpy.linalg.eigh``; nothing else.
 """
+import math
+
 import numpy as np
 
 from .constants import GAMMA
@@ -109,6 +127,16 @@ class BlochTorrey1D:
     density : float or sequence of float
         The magnetisation density of each layer at the excitation (the spins' density): ``(1, 0)`` starts every
         spin in the first of two layers. The signal is normalised to the total at the excitation.
+    binding_reactivity : float or sequence of float
+        The reactivity ``k_on`` of the bound pool on each face of each interior edge, m/s (``0``: no bound pool; an
+        edge with one is a membrane of finite permeability).
+    dwell_time : float or sequence of float
+        The mean dwell ``tau_b`` of a bound spin on each edge's faces, s (positive and finite where ``k_on > 0``).
+    bound_R2, bound_omega : float or sequence of float
+        The bound pools' transverse relaxation rate (1/s) and off-resonance (rad/s) on each edge's faces.
+    bound_start : {"equilibrium", "empty"}
+        The bound pools at the excitation: each face's pool at equilibrium with its layer's ``density`` (``k_on tau_b``
+        times it, excited with the free water), or empty.
     n_cells : int
         The number of cells across the whole interval, shared among the layers in proportion to their widths (at
         least two per layer).
@@ -122,12 +150,19 @@ class BlochTorrey1D:
     permeability_breakpoints : ndarray, shape (n_intervals - 1,)
         The times at which the intervals change, s.
     lam, U : ndarray
-        The eigenvalues and eigenvectors of the symmetrised diffusion operator on each interval,
-        shapes ``(n_intervals, n_cells)`` and ``(n_intervals, n_cells, n_cells)``.
+        The eigenvalues and eigenvectors of the symmetrised diffusion operator on each interval, on the cells and then
+        the bound pools: shapes ``(n_intervals, n_states)`` and ``(n_intervals, n_states, n_states)``.
+    n_pools : int
+        The bound pools (two per edge with ``k_on > 0``: its ``-`` face, then its ``+`` face), after the cells.
+    x_state, R2_state, omega_state, sqrt_w, mass0 : ndarray, shape (n_states,)
+        Per state (the cells, then the pools): the position, the relaxation rate, the off-resonance (the background
+        included), the square root of its equilibrium mass (the symmetrisation) and its magnetisation at the
+        excitation (a cell's density times its width; a pool's per unit area).
     """
 
     def __init__(self, edges_m, diffusivity, *, permeability=np.inf, permeability_breakpoints=(), membrane_relaxivity=0.0,
-                 wall_relaxivity=0.0, R2=0.0, omega=0.0, background_gradient=0.0, density=1.0, n_cells=800, gamma=GAMMA):
+                 wall_relaxivity=0.0, R2=0.0, omega=0.0, background_gradient=0.0, density=1.0, binding_reactivity=0.0,
+                 dwell_time=np.inf, bound_R2=0.0, bound_omega=0.0, bound_start="equilibrium", n_cells=800, gamma=GAMMA):
         edges = np.asarray(edges_m, dtype=np.float64)
         if edges.ndim != 1 or len(edges) < 2 or not np.all(np.isfinite(edges)) or np.any(np.diff(edges) <= 0):
             raise ValueError(f"edges_m is two or more finite, strictly increasing positions in metres, not {edges_m!r}")
@@ -160,6 +195,22 @@ class BlochTorrey1D:
         if np.any(np.isinf(kappa) & (rho_e[None] > 0)):
             raise ValueError("a membrane with a surface relaxivity has a finite permeability; an edge of infinite "
                              "permeability is no membrane and has no faces to relax on")
+        k_on = _per_edge(binding_reactivity, n_edges, "binding_reactivity")
+        tau_b = _per_edge(dwell_time, n_edges, "dwell_time")
+        R2b = _per_edge(bound_R2, n_edges, "bound_R2")
+        omb = _per_edge(bound_omega, n_edges, "bound_omega")
+        if np.any(k_on < 0) or not np.all(np.isfinite(k_on)):
+            raise ValueError("a binding reactivity is a finite non-negative number in m/s")
+        bind = k_on > 0
+        if np.any(bind & ~((tau_b > 0) & np.isfinite(tau_b))):
+            raise ValueError("an edge with a bound pool has a positive, finite dwell_time")
+        if np.any(np.isinf(kappa) & bind[None]):
+            raise ValueError("a bound pool lies on the faces of a membrane of finite permeability; an edge of infinite "
+                             "permeability is no membrane and has no faces to bind to")
+        if np.any(R2b[bind] < 0) or not np.all(np.isfinite(R2b)) or not np.all(np.isfinite(omb)):
+            raise ValueError("a bound pool's R2 is finite and non-negative, its omega finite")
+        if bound_start not in ("equilibrium", "empty"):
+            raise ValueError(f"bound_start is 'equilibrium' or 'empty', not {bound_start!r}")
         n_cells = int(n_cells)
         width = np.diff(edges)
         per_layer = np.maximum(2, np.round(n_cells * width / width.sum()).astype(int))
@@ -184,21 +235,38 @@ class BlochTorrey1D:
 
         g_half = 2.0 * D / h                                           # the conductance of a half-cell
         s = 1.0 / np.sqrt(h)
+        pool_edge = np.repeat(np.nonzero(bind)[0], 2)                  # the pools: (edge, face -), (edge, face +)
+        n_pools = len(pool_edge)
+        first_pool = {int(e): n + 2 * i for i, e in enumerate(np.nonzero(bind)[0])}
 
         def operator(k):
-            """The eigendecomposition of the symmetrised diffusion operator at the edges' permeabilities ``k``."""
-            C = np.zeros((n, n))
+            """The eigendecomposition of the symmetrised operator (diffusion, membranes, binding) at the edges'
+            permeabilities ``k``, on the cells and the pools."""
+            A = np.zeros((n + n_pools, n + n_pools))
             for i in range(n - 1):
                 e = layer[i]                                           # across a layer's edge: the edge e
                 if layer[i + 1] != e and np.isfinite(k[e]):
+                    if bind[e]:
+                        # the face nodes eliminated with their pools: M f = G m + b / tau_b
+                        gi, gj = g_half[i], g_half[i + 1]
+                        G = np.diag([gi, gj])
+                        M = np.array([[gi + k[e] + rho_e[e] + k_on[e], -k[e]], [-k[e], gj + k[e] + rho_e[e] + k_on[e]]])
+                        Mi = np.linalg.inv(M)
+                        sc = np.diag(s[i:i + 2])
+                        r = math.sqrt(k_on[e] / tau_b[e])
+                        cc, ff = slice(i, i + 2), slice(first_pool[int(e)], first_pool[int(e)] + 2)
+                        A[cc, cc] += sc @ (G @ Mi @ G - G) @ sc
+                        A[cc, ff] += r * (sc @ G @ Mi)
+                        A[ff, cc] += r * (Mi @ G @ sc)
+                        A[ff, ff] += (k_on[e] / tau_b[e]) * Mi - np.eye(2) / tau_b[e]
+                        continue
                     Y = _membrane_block(g_half[i], g_half[i + 1], k[e], rho_e[e])
                 else:                                                  # two half-cells in series
                     Y = np.array([[1.0, -1.0], [-1.0, 1.0]]) / (1.0 / g_half[i] + 1.0 / g_half[i + 1])
-                C[i:i + 2, i:i + 2] += Y
+                A[i:i + 2, i:i + 2] -= s[i:i + 2, None] * Y * s[None, i:i + 2]
             for cell, rho in ((0, rho_w[0]), (n - 1, rho_w[1])):      # the Robin walls: half-cell and rho in series
                 if rho > 0:
-                    C[cell, cell] += g_half[cell] * rho / (g_half[cell] + rho)
-            A = -(s[:, None] * C * s[None, :])
+                    A[cell, cell] -= s[cell] ** 2 * g_half[cell] * rho / (g_half[cell] + rho)
             return np.linalg.eigh(0.5 * (A + A.T))                     # A = U diag(lam) U^T, lam <= 0
 
         ops = [operator(k) for k in kappa]
@@ -207,8 +275,22 @@ class BlochTorrey1D:
         self.m0 = density[layer]
         self.R2_cells = self.R2_layers[layer]
         self.omega_cells = self.omega_layers[layer] + self.gamma * self.background_gradient * x
+        # the states: the cells, then the pools (each at its edge, on the side of its face)
+        self.binding_reactivity, self.dwell_time, self.bound_R2, self.bound_omega = k_on, tau_b, R2b, omb
+        self.n_pools = n_pools
+        self.pool_edge = pool_edge
+        self.pool_side = pool_edge + np.tile([0, 1], n_pools // 2)       #: the layer each pool's face belongs to
+        xe = edges[1:-1][pool_edge]
+        self.x_state = np.concatenate([x, xe])
+        self.R2_state = np.concatenate([self.R2_cells, R2b[pool_edge]])
+        self.omega_state = np.concatenate([self.omega_cells, omb[pool_edge] + self.gamma * self.background_gradient * xe])
+        self.sqrt_w = np.concatenate([np.sqrt(h), np.sqrt(k_on[pool_edge] * tau_b[pool_edge])])
+        b0 = (k_on[pool_edge] * tau_b[pool_edge] * density[self.pool_side] if bound_start == "equilibrium"
+              else np.zeros(n_pools))
+        self.mass0 = np.concatenate([h * self.m0, b0])
+        self.free = np.r_[np.ones(n, bool), np.zeros(n_pools, bool)]
 
-    def signal(self, G, dt, *, refocus=(), sub_steps=1, by_layer=False):
+    def signal(self, G, dt, *, refocus=(), sub_steps=1, by_layer=False, pool="total"):
         """The complex signal after the gradient ``G`` played for ``len(G)`` steps of ``dt``.
 
         Parameters
@@ -225,15 +307,20 @@ class BlochTorrey1D:
             permeability breakpoint lies on a boundary of these steps, ``t = j dt / sub_steps`` for an integer ``j``
             (to a relative ``1e-9``); one that does not is refused.
         by_layer : bool
-            Return the signal of each layer (the magnetisation summed over its cells) on a last axis instead of the
-            total.
+            Return the signal of each layer (the magnetisation summed over its cells, and over the pools on its faces)
+            on a last axis instead of the total.
+        pool : {"total", "free", "bound"}
+            The magnetisation read: the free water and the bound pools together, or one of them.
 
         Returns
         -------
         complex or ndarray
             The magnetisation at the end (summed over the interval, or per layer), as a fraction of the total at the
-            excitation; shape ``()`` or ``(n_meas,)`` (with ``(n_layers,)`` appended when ``by_layer``).
+            excitation (bound pools included); shape ``()`` or ``(n_meas,)`` (with ``(n_layers,)`` appended when
+            ``by_layer``).
         """
+        if pool not in ("total", "free", "bound"):
+            raise ValueError(f"pool is 'total', 'free' or 'bound', not {pool!r}")
         G = np.asarray(G, dtype=np.float64)
         single = G.ndim == 1
         G2 = G[None] if single else G
@@ -254,12 +341,13 @@ class BlochTorrey1D:
         half = np.exp(0.5 * tau * self.lam[0])[:, None]
         U = self.U[0]
         UT = U.T
-        y = (np.sqrt(self.h) * self.m0).astype(complex)[:, None] * np.ones((1, G2.shape[0]))
+        y = (self.mass0 / self.sqrt_w).astype(complex)[:, None] * np.ones((1, G2.shape[0]))
         c = UT @ y                                                      # the symmetrised state's eigenbasis coefficients
         for k in range(n_t):
             if k in flips:                                              # the 180 conjugates the magnetisation
                 c = UT @ np.conj(U @ c)
-            V = np.exp(-tau * (self.R2_cells[:, None] + 1j * (self.omega_cells[:, None] + self.gamma * self.x[:, None] * G2[:, k])))
+            V = np.exp(-tau * (self.R2_state[:, None] + 1j * (self.omega_state[:, None]
+                                                              + self.gamma * self.x_state[:, None] * G2[:, k])))
             for j in range(sub):                                        # Strang: half diffusion, potential, half diffusion
                 while piece < len(change) and change[piece] == k * sub + j:
                     piece += 1                                          # the operator changes: carry the state over
@@ -272,10 +360,13 @@ class BlochTorrey1D:
         y = U @ c
         if n_t in flips:
             y = np.conj(y)
-        m = y * np.sqrt(self.h)[:, None]                                   # the magnetisation times the cell width
-        norm = float(np.sum(self.h * self.m0))
+        m = y * self.sqrt_w[:, None]                                       # the magnetisation of each state
+        norm = float(np.sum(self.mass0))
+        keep = np.ones(len(m), bool) if pool == "total" else (self.free if pool == "free" else ~self.free)
+        m = np.where(keep[:, None], m, 0.0)
         if by_layer:
-            out = np.stack([m[self.layer == i].sum(0) for i in range(self.n_layers)], axis=-1) / norm
+            lay = np.concatenate([self.layer, self.pool_side])
+            out = np.stack([m[lay == i].sum(0) for i in range(self.n_layers)], axis=-1) / norm
         else:
             out = m.sum(0) / norm
         return out[0] if single else out

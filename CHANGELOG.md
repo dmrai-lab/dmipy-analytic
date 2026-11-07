@@ -5,6 +5,18 @@ the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **Bound pools on the faces of a membrane** (`bloch_torrey.BlochTorrey1D(binding_reactivity=, dwell_time=,
+  bound_R2=, bound_omega=, bound_start=)`, `signal(pool=)`): on each face of an interior edge a pool of spins bound to
+  the surface, fed from the free water at the face at the reactivity `k_on` (m/s) and returned to it after an
+  exponential dwell `tau_b`; a bound spin does not diffuse, and relaxes and precesses at its own `R2b` and `omega_b`.
+  These are the Bloch-McConnell equations of a free and a bound pool with the exchange local to the faces
+  (magnetization transfer at a membrane, or any surface-adsorbed state), the free pool's diffusion resolved. The pools
+  join the finite-volume network at the face nodes; the exchange is reversible, so the operator is symmetrised by the
+  equilibrium masses and the same eigenbasis and Strang split carry it. Checked against the exact series of a face
+  with a bound pool (`D q tan(q a) = c_R + k_on (R2b - s) / (k_off + R2b - s)`; the even and odd parts of a membrane
+  between equal layers, sealed and permeable, total and free water), the two-pool Bloch-McConnell exchange as diffusion
+  outruns it (first order), conservation without relaxation and the fill from empty pools to equilibrium. The JAX
+  twin carries the pools to rounding.
 - **The water of a sheath** (`restricted.sheath`): the echo of water in the annulus between two coaxial circles of a
   straight tube, for the two models of myelin water. `annulus_signal`: water filling the annulus and diffusing in it
   (the matrix method of the annulus, `matrix_method.AnnulusPore`, on its Neumann modes of the Bessel functions of both
