@@ -11,8 +11,8 @@ The modules:
 * :mod:`~dmipy_analytic.harmonics`: the real spherical-harmonic basis and its rotations;
 * :mod:`~dmipy_analytic.orientation`: the Watson and Bingham kernels and their harmonic coefficients;
 * :mod:`~dmipy_analytic.gaussian`: free diffusion, the stick, the zeppelin and the tensor;
-* :mod:`~dmipy_analytic.restricted`: the plane, the cylinder and the sphere pore, by the eigenmode (matrix) method
-  and in closed form, and the surface of a straight tube of any outline;
+* :mod:`~dmipy_analytic.restricted`: the plane, the cylinder, the sphere and the annulus pore, by the eigenmode
+  (matrix) method and in closed form, the surface of a straight tube of any outline, and the water of a sheath;
 * :mod:`~dmipy_analytic.exchange`: exchange between compartments and permeable membranes;
 * :mod:`~dmipy_analytic.bloch_torrey`: the one-dimensional Bloch-Torrey equation on layers between two walls, with
   membranes, surface relaxivity, relaxation, off-resonance and a background gradient, solved to a stated accuracy;
