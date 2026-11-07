@@ -74,3 +74,17 @@ def test_the_twin_is_differentiable_in_the_gradient():
     third = abs((f[3] - 2 * f[2] + 2 * f[1] - f[0]) / (2 * h ** 3))
     rounding = 2 * (len(G) + 1) * (4 * len(model.h) + 4) * U64 / (2 * h)
     assert abs(d_twin - d_central) <= 2.0 * third * h ** 2 / 6.0 + rounding, (d_twin, d_central)
+
+
+@pytest.mark.parametrize("pool", ["total", "free", "bound"])
+def test_the_twin_carries_the_bound_pools(pool):
+    model = BlochTorrey1D([0.0, 2e-6, 4e-6], 2e-9, permeability=1e-5, R2=(12.5, 50.0), background_gradient=0.01,
+                          density=(1.0, 0.0), binding_reactivity=5e-5, dwell_time=5e-3, bound_R2=40.0, bound_omega=60.0,
+                          n_cells=64)
+    G = _waveform()
+    want = model.signal(G, 1e-4, refocus=(100,), pool=pool)
+    with x64():
+        got = complex(jbt.signal(model, jnp.asarray(G), 1e-4, refocus=(100,), pool=pool))
+    N = len(model.x_state)
+    n = len(G) + 1
+    assert abs(got - want) <= (n * (4 * N + 4) + N) * U64, (got, want)

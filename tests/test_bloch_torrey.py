@@ -286,3 +286,109 @@ def test_a_breakpoint_inside_a_step_is_refused():
         bt.signal(np.zeros(20), 1e-4)
     bt.signal(np.zeros(20), 1e-4, sub_steps=2)                         # 1.05 ms is a whole number of 50 us steps
 
+
+
+def _dynamic_robin_series(a, c_R, k_on, tau_b, R2f, R2b, t, n_roots=600):
+    """A layer of width ``a`` between a reflecting wall and a face with a Robin relaxivity ``c_R`` and a bound pool
+    (``k_on``, ``tau_b``, ``R2b``), the free water relaxing at ``R2f``, both at equilibrium at the start (a free density
+    of 1, ``k_on tau_b`` bound): ``(total, free)`` at the times ``t``, each a fraction of the start's total ``a + k_on
+    tau_b``. The modes ``(cos(q x), B)`` decay at ``s = D q^2 + R2f``; the bound pool's balance gives ``B = k_on cos(q a)
+    / (k_off + R2b - s)`` and the face's flux ``D q tan(q a) = c_R + k_on (R2b - s) / (k_off + R2b - s)``. The modes are
+    orthogonal under the inner product weighted by the equilibrium masses (``int u v dx + u_b v_b / (k_on tau_b)``),
+    the exchange being reversible; ``R2b > R2f`` keeps every root real."""
+    from scipy.optimize import brentq
+    k_off = 1.0 / tau_b
+
+    def g(q):
+        s = D * q * q + R2f
+        return D * q * np.sin(q * a) * (k_off + R2b - s) - (c_R * (k_off + R2b - s) + k_on * (R2b - s)) * np.cos(q * a)
+
+    q_max = (n_roots + 0.5) * np.pi / a
+    grid = np.linspace(1e-9 / a, q_max, 400 * n_roots)
+    q_pole = np.sqrt(max(k_off + R2b - R2f, 0.0) / D)
+    grid = np.unique(np.r_[grid, np.linspace(max(q_pole - 4 * np.pi / a, 1e-9 / a), q_pole + 4 * np.pi / a, 40000)])
+    v = g(grid)
+    i = np.nonzero(np.sign(v[1:]) != np.sign(v[:-1]))[0]
+    q = np.array([brentq(g, grid[j], grid[j + 1], xtol=1e-14 / a, rtol=1e-15) for j in i])
+    s = D * q * q + R2f
+    B = k_on * np.cos(q * a) / (k_off + R2b - s)
+    norm = a / 2 + np.sin(2 * q * a) / (4 * q) + B * B / (k_on * tau_b)
+    free_mass = np.sin(q * a) / q
+    c = (free_mass + B) / norm                                         # the start (1, k_on tau_b) on each mode
+    total0 = a + k_on * tau_b
+    assert abs(np.sum(c * free_mass) - a) < 1e-3 * a and abs(np.sum(c * B) - k_on * tau_b) < 1e-3 * k_on * tau_b, \
+        "the modes do not reproduce the start: a root was missed"
+    E = np.exp(-np.multiply.outer(np.asarray(t, np.float64), s))
+    return (E @ (c * (free_mass + B))) / total0, (E @ (c * free_mass)) / total0
+
+
+@pytest.mark.parametrize("kappa", [0.0, 1e-5, 1e-4])
+def test_bound_pools_on_a_membrane_between_equal_layers_are_two_dynamic_robin_series(kappa):
+    """Every spin (free and bound) starts on the first layer's side, both pools at equilibrium: the even part sees each
+    face with its bound pool alone, the odd part a Robin wall of ``2 kappa`` as well; each part is the dynamic-Robin
+    series of one layer (:func:`_dynamic_robin_series`). The first layer (its cells and its face's pool) holds the half
+    sum, the second the half difference, of the total and of the free water alone."""
+    a, dt = 2e-6, 2e-4
+    k_on, tau_b, R2f, R2b = 1e-4, 5e-3, 12.5, 80.0
+    n_t = (10, 50, 250)                                       # 2, 10 and 50 ms
+    kw = dict(permeability=kappa, density=(1.0, 0.0), R2=R2f, binding_reactivity=k_on, dwell_time=tau_b, bound_R2=R2b)
+    got = {pool: [np.array([BlochTorrey1D([0.0, a, 2 * a], D, n_cells=n, **kw).signal(
+        np.zeros(m), dt, sub_steps=sub, by_layer=True, pool=pool).real for m in n_t]) for n, sub in ((100, 2), (200, 4), (400, 8))]
+        for pool in ("total", "free")}
+    t = np.array(n_t) * dt
+    even = _dynamic_robin_series(a, 0.0, k_on, tau_b, R2f, R2b, t)
+    odd = _dynamic_robin_series(a, 2 * kappa, k_on, tau_b, R2f, R2b, t)
+    for i, pool in enumerate(("total", "free")):
+        err = _second_order(got[pool])
+        ref = np.stack([(even[i] + odd[i]) / 2, (even[i] - odd[i]) / 2], axis=-1)
+        assert np.all(np.abs(got[pool][0] - ref) <= 2.0 * err + 1e-9), (pool, got[pool][0], ref, err)
+
+
+def test_fast_diffusion_tends_to_the_two_pool_bloch_mcconnell_exchange_at_first_order():
+    """One sealed membrane, a layer of width ``a`` on each side, a bound pool on each face: when diffusion mixes a layer
+    faster than the exchange and the relaxation act, the free water and the face's pool are the two well-mixed pools
+    of Bloch-McConnell with ``k_f = k_on / a`` and ``k_r = 1 / tau_b`` (:func:`~dmipy_analytic.relaxation.
+    bloch_mcconnell_transverse`, both pools excited at equilibrium). The departure falls as ``1 / D`` (first order)."""
+    from dmipy_analytic.relaxation import bloch_mcconnell_transverse
+    a, k_on, tau_b, R2f, R2b, t, dt = 2e-6, 5e-5, 1e-2, 12.5, 50.0, 0.02, 2e-4
+    k_f = k_on / a
+    ref = bloch_mcconnell_transverse(t, T2a=1 / R2f, T2b=1 / R2b, k_f=k_f, k_r=1 / tau_b, M0a=1.0)
+    departure = []
+    for Dx in (2e-9, 8e-9, 32e-9):
+        m = BlochTorrey1D([0.0, a, 2 * a], Dx, permeability=0.0, R2=R2f, binding_reactivity=k_on, dwell_time=tau_b,
+                          bound_R2=R2b, n_cells=400)
+        free = m.signal(np.zeros(int(round(t / dt))), dt, sub_steps=4, pool="free").real
+        departure.append(abs(free * (a + k_on * tau_b) / a - ref))          # BM's free pool starts at 1
+    ratios = departure[0] / departure[1], departure[1] / departure[2]
+    assert all(3.0 < r < 5.0 for r in ratios), (departure, ratios)
+
+
+def test_without_relaxation_the_bound_pools_conserve_the_magnetisation_and_fill_to_equilibrium():
+    a, k_on, tau_b = 2e-6, 1e-4, 5e-3
+    kw = dict(permeability=2e-5, binding_reactivity=k_on, dwell_time=tau_b, density=(1.0, 0.5), n_cells=200)
+    n_t = 400                                                 # 80 ms: 16 dwells
+    for start in ("equilibrium", "empty"):
+        m = BlochTorrey1D([0.0, a, 2 * a], D, bound_start=start, **kw)
+        # the stationary mode's eigenvalue is zero to the eigendecomposition's rounding, N U64 max|lambda|, over t
+        tol = len(m.x_state) * np.finfo(float).eps * np.abs(m.lam).max() * n_t * 2e-4
+        assert abs(m.signal(np.zeros(n_t), 2e-4).real - 1.0) < tol
+    # from empty pools: the bound share settles at 2 k_on tau_b / (2 a + 2 k_on tau_b) of the free density's mass
+    m = BlochTorrey1D([0.0, a, 2 * a], D, bound_start="empty", **kw)
+    fb = m.signal(np.zeros(n_t), 2e-4, pool="bound").real
+    want = 2 * k_on * tau_b / (2 * a + 2 * k_on * tau_b)
+    assert abs(fb - want) < 1e-6
+    # zero reactivity: no pools, and the signal is the model's without them
+    m0 = BlochTorrey1D([0.0, a, 2 * a], D, permeability=2e-5, R2=(10.0, 30.0), n_cells=100)
+    m1 = BlochTorrey1D([0.0, a, 2 * a], D, permeability=2e-5, R2=(10.0, 30.0), n_cells=100, binding_reactivity=0.0,
+                       dwell_time=1e-3)
+    G = np.zeros(100); G[10:30] = 0.1; G[60:80] = -0.1
+    assert m1.n_pools == 0 and m0.signal(G, 1e-4) == m1.signal(G, 1e-4)
+
+
+@pytest.mark.parametrize("kwargs", [dict(permeability=np.inf, binding_reactivity=1e-5, dwell_time=1e-3),
+                                    dict(permeability=1e-5, binding_reactivity=1e-5),
+                                    dict(permeability=1e-5, binding_reactivity=-1e-5, dwell_time=1e-3),
+                                    dict(permeability=1e-5, binding_reactivity=1e-5, dwell_time=1e-3, bound_start="full")])
+def test_an_ill_posed_bound_pool_is_refused(kwargs):
+    with pytest.raises(ValueError):
+        BlochTorrey1D([0.0, 1e-6, 2e-6], D, **kwargs)
