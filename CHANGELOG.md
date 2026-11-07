@@ -5,6 +5,16 @@ the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **The water of a sheath** (`restricted.sheath`): the echo of water in the annulus between two coaxial circles of a
+  straight tube, for the two models of myelin water. `annulus_signal`: water filling the annulus and diffusing in it
+  (the matrix method of the annulus, `matrix_method.AnnulusPore`, on its Neumann modes of the Bessel functions of both
+  kinds, `annulus_neumann_roots`, times free diffusion or the plate pore along the axis), for a gradient along one
+  fixed direction across the axis (a turning one is refused by name). `lamellae_signal`: water confined to the
+  lamellae (Canales-Rodriguez et al. 2026), the circular tube's echo averaged over lamellae evenly spaced in the radius
+  by Gauss-Legendre quadrature, for any gradient. Checked against the roots' cross product (none missed), the modes'
+  orthonormality and the annulus's exact second moment, its long-time narrow-pulse diffraction pattern (first order
+  in `delta`), the circle as the sheath thins (second order) and the disk as the hole closes, the convergence in modes
+  and nodes, the factorisation and the 180 as a conjugation. The JAX twins are held to the numpy forms in float64.
 - **Two exchanging pools under any sampled waveform** (`exchange.karger_waveform`): the generalised Karger equation
   `dM/dt = (K - R(t) - |q(t)|^2 diag(D)) M` (Ning et al. 2018, Eq. 5) along an effective gradient, `T2` while transverse
   and `T1` while stored, each step the exponential of its two-term Magnus exponent in closed form (fourth order; exact

@@ -61,8 +61,9 @@ ANGULAR_NODES = 2048
 #: split instead.
 _MAX_EXACT_RUNS = 64
 
-__all__ = ["MatrixPore", "PeriodicPore", "polygon_fourier", "matrix_restricted_signal", "matrix_restricted_batch",
-           "cylinder_neumann_roots", "sphere_neumann_roots", "DEFAULT_MODES"]
+__all__ = ["MatrixPore", "AnnulusPore", "PeriodicPore", "polygon_fourier", "matrix_restricted_signal",
+           "matrix_restricted_batch", "cylinder_neumann_roots", "sphere_neumann_roots", "annulus_neumann_roots",
+           "DEFAULT_MODES", "ANNULUS_DEFAULT_MODES"]
 
 
 def cylinder_neumann_roots(m, n_roots):
@@ -103,6 +104,47 @@ def sphere_neumann_roots(l, n_roots):
             break
     roots = np.asarray(roots)
     return np.concatenate([[0.0], roots]) if l == 0 else roots
+
+
+def annulus_neumann_roots(m, ratio, n_roots):
+    """The first ``n_roots`` non-negative roots of the Neumann condition on the annulus ``ratio <= r <= 1`` at the
+    angular order ``m``, ``J_m'(x ratio) Y_m'(x) - J_m'(x) Y_m'(x ratio) = 0``: the eigenvalues ``lambda = x^2`` of the
+    modes ``[J_m(x r) Y_m'(x) - Y_m(x r) J_m'(x)] cos(m theta)``; ``m = 0`` includes the constant mode at 0.
+    ``0 < ratio < 1``; ``n_roots`` is at least 1.
+
+    The cross product has no root below ``x = m`` (the Rayleigh quotient of a mode of order ``m`` on radii at most 1
+    is at least ``m^2``) and its roots are separated by about ``pi / (1 - ratio)`` (the wall-to-wall wavenumber), so
+    it is bracketed from ``m`` on a grid of a hundredth of that spacing and each sign change refined by Brent's
+    method."""
+    special = need("scipy.special")
+    brentq = need("scipy.optimize").brentq
+    if n_roots < 1:
+        raise ValueError(f"n_roots must be at least 1, not {n_roots}")
+    rho = float(ratio)
+    if not 0.0 < rho < 1.0:
+        raise ValueError(f"an annulus's ratio of inner to outer radius lies strictly between 0 and 1, not {ratio!r}")
+
+    def cross(x):
+        return (special.jvp(m, x * rho) * special.yvp(m, x) - special.jvp(m, x) * special.yvp(m, x * rho))
+
+    roots = [0.0] if m == 0 else []
+    h = np.pi / (1.0 - rho) / 100.0
+    lo = max(float(m), 1e-6)
+    while len(roots) < n_roots:
+        xs = lo + h * np.arange(1, 1001)
+        f = cross(xs)
+        if not np.all(np.isfinite(f)):
+            raise ValueError(f"the annulus's cross product overflows at order {m} and ratio {rho}: the inner wall is "
+                             f"too close to the axis for the Bessel functions of the second kind")
+        f0 = cross(lo)
+        prev = np.concatenate([[f0], f[:-1]])
+        for i in np.flatnonzero(np.sign(prev) * np.sign(f) < 0):
+            a = lo if i == 0 else xs[i - 1]
+            roots.append(brentq(cross, a, xs[i], xtol=1e-14, rtol=1e-15))
+            if len(roots) >= n_roots:
+                break
+        lo = xs[-1]
+    return np.asarray(roots[:n_roots])
 
 
 def _plane_modes_unit(n_max, nr):
@@ -148,6 +190,46 @@ def _cyl_modes_unit(m_max, n_max, nr, nt):
             ang = np.trapezoid(np.cos(mi * t) * np.cos(t) * np.cos(mj * t), t)
             B[i, j] = rad * ang / np.sqrt(rnorm[i] * ang_norm[mi] * rnorm[j] * ang_norm[mj])
     return np.asarray(lam), B
+
+
+#: Gauss-Legendre nodes across the annulus's wall-to-wall interval: its radial integrands are smooth and oscillate at
+#: most ``n_max`` times across it, so the rule is exact to rounding (checked against twice the nodes in the tests).
+ANNULUS_NODES = 512
+
+
+@lru_cache(maxsize=None)
+def _annulus_modes_unit(ratio, m_max, n_max, nodes):
+    """The annulus ``ratio <= r <= 1``, gradient across it: states ``(m, n)`` with radial
+    ``J_m(x r) Y_m'(x) - Y_m(x r) J_m'(x)`` (the root ``x`` of :func:`annulus_neumann_roots`; the constant for the
+    ground mode) and angular ``cos(m theta)``, orthonormal on ``r dr dtheta``, and ``B`` the operator
+    ``x = r cos theta``. ``(lambda_unit, B_unit, beta_unit, U_unit)`` as :func:`_unit_modes`, cached per ratio."""
+    special = need("scipy.special")
+    t, wq = np.polynomial.legendre.leggauss(int(nodes))
+    r = ratio + 0.5 * (1.0 - ratio) * (t + 1.0)
+    wr = 0.5 * (1.0 - ratio) * wq
+    states, lam, rfun = [], [], []
+    for m in range(m_max + 1):
+        for n, x in enumerate(annulus_neumann_roots(m, ratio, n_max)):
+            if x == 0.0:
+                R = np.ones_like(r)
+            else:
+                R = special.jv(m, x * r) * special.yvp(m, x) - special.yv(m, x * r) * special.jvp(m, x)
+            R = R / np.sqrt(np.sum(wr * R * R * r))
+            states.append(m); lam.append(x * x); rfun.append(R)
+    N = len(states)
+    B = np.zeros((N, N))
+    for i in range(N):
+        for j in range(N):
+            mi, mj = states[i], states[j]
+            if abs(mi - mj) != 1:                       # cos t couples only neighbouring angular orders
+                continue
+            rad = np.sum(wr * rfun[i] * rfun[j] * r * r)
+            # int cos(m t) cos(t) cos((m+1) t) dt = pi/2 (pi when m = 0), over the angular norms 2 pi (m = 0) and pi
+            ang = np.pi * (1.0 if min(mi, mj) == 0 else 0.5)
+            B[i, j] = rad * ang / np.sqrt((2 * np.pi if mi == 0 else np.pi) * (2 * np.pi if mj == 0 else np.pi))
+    lam = np.asarray(lam)
+    beta, U = np.linalg.eigh(B)
+    return lam, B, beta, U
 
 
 def _sph_modes_unit(l_max, n_max, nr, nt):
@@ -336,6 +418,46 @@ class MatrixPore:
         g = np.asarray(g_axis, np.float64)
         return _echo(self.lam, self.D, self.B[None], g[:, None], dt, refocus=refocus,
                      max_exact_runs=_MAX_EXACT_RUNS, eig=(self._beta, self._U))
+
+
+#: the series truncation of the annulus when none is given, the (angular, radial) pair: its radial modes decay at
+#: ``(n pi / (1 - ratio))^2`` against the angular ``m^2``, so few are needed beside the angular orders
+ANNULUS_DEFAULT_MODES = (24, 8)
+
+
+class AnnulusPore(MatrixPore):
+    """The closed form of the annulus between two coaxial circles, the wall of a hollow cylinder filled with water:
+    ``AnnulusPore(outer_diameter_m, inner_diameter_m, D).signal(g, dt)``.
+
+    The pore's Laplacian with reflecting walls on both circles has the modes ``R_mn(r) cos(m theta)``, ``R_mn`` the
+    cross product of :func:`annulus_neumann_roots` (the Bessel functions of both kinds, since the axis is not in the
+    pore), and the gradient along one fixed direction across the axis couples the angular orders ``m`` and
+    ``m +/- 1`` through ``x = r cos theta``; the propagation is :class:`MatrixPore`'s (its :meth:`signal`). The disk
+    is the limit of a vanishing inner diameter, the circle of :class:`PeriodicPore` (water on one cylindrical
+    surface) the limit of a vanishing thickness.
+
+    ``n_modes`` is the ``(angular, radial)`` truncation, :data:`ANNULUS_DEFAULT_MODES` when not given: the only
+    approximation besides the quadrature (:data:`ANNULUS_NODES`). The unit modes are computed once per ratio of the
+    diameters and order, and a pore of outer radius ``a`` reads ``lambda = lambda_unit / a^2``, ``B = a B_unit``.
+    Assumes impermeable walls without surface relaxivity, a uniform start, one free diffusivity and a gradient along a
+    fixed direction perpendicular to the axis, given as its amplitude per step. Source: the eigenfunctions of the
+    annulus (Carslaw HS, Jaeger JC (1959), Conduction of Heat in Solids, 2nd ed., Sec. 13.5) in the matrix formalism
+    of Callaghan PT (1997), J. Magn. Reson. 129:74-84.
+    """
+
+    def __init__(self, outer_diameter_m, inner_diameter_m, D, *, n_modes=None):
+        outer, inner = float(outer_diameter_m), float(inner_diameter_m)
+        if not 0.0 < inner < outer:
+            raise ValueError(f"an annulus has 0 < inner diameter < outer diameter, not inner={inner_diameter_m!r}, "
+                             f"outer={outer_diameter_m!r}")
+        m_max, n_max = (int(x) for x in (ANNULUS_DEFAULT_MODES if n_modes is None else n_modes))
+        self.shape, self.D, self.size, self.inner = "annulus", float(D), outer, inner
+        lam_unit, B_unit, beta_unit, U_unit = _annulus_modes_unit(inner / outer, m_max, n_max, ANNULUS_NODES)
+        a = 0.5 * outer
+        self.lam = lam_unit / a ** 2
+        self.B = a * B_unit
+        self._beta = a * beta_unit
+        self._U = U_unit
 
 
 def _position_matrix(f_hat, n_modes):
