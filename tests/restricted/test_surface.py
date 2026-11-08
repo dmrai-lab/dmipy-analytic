@@ -13,6 +13,10 @@
    cos^2 beta)``, and a capped tube against the joint propagation in the product of the outline's and the plates'
    modes.
 
+7. Beyond the PGSE: the circle and the lamellae of a sheath under a trapezoidal OGSE below and past the circle's
+   diffusion rate and under a gradient turning in the plane, each against the Monte Carlo of the exact walk, within the
+   Bonferroni-corrected ``z`` standard errors plus the derived trapezoid-rule bias.
+
 Plus the position matrices against the circle's identities and a quadrature of the multiplication by a polygon's
 coordinates, the 180 as a conjugation against the effective waveform, the circle's invariance under a rotation of a
 turning waveform, and the refusals. The rounding allowed a matrix-exponential product is derived once
@@ -27,7 +31,7 @@ from scipy import special, stats
 
 import dmipy_analytic.restricted.matrix_method as mm
 from dmipy_analytic.constants import GAMMA
-from dmipy_analytic.restricted import surface
+from dmipy_analytic.restricted import sheath, surface
 from dmipy_analytic.restricted.matrix_method import MatrixPore, PeriodicPore, polygon_fourier
 
 D = 0.8e-9          # m^2/s, the paper's surface diffusivity
@@ -526,3 +530,95 @@ def test_a_capped_tube_is_the_joint_propagation_in_the_product_of_the_two_bases(
               + _rounding(plates.lam, plates.B[None], g[:, 2:], 1e-4, ref))
     assert abs(E - E_joint) <= budget
     assert abs(E.imag) <= budget and 0.0 < E.real < 1.0
+
+
+# ================================================== 7: beyond PGSE -- trapezoidal OGSE and a turning gradient
+def _ogse(G, f, cycles, dt, ramp):
+    """A trapezoidal oscillating gradient along ``x`` as the effective waveform: ``cycles`` periods of ``1/f``, each a
+    positive and a negative lobe of amplitude ``G`` whose linear ramps last ``ramp`` (midpoint-sampled, so each step
+    keeps its area)."""
+    n_half, n_ramp = int(round(0.5 / f / dt)), int(round(ramp / dt))
+    up = G * (np.arange(n_ramp) + 0.5) / n_ramp
+    lobe = np.concatenate([up, np.full(n_half - 2 * n_ramp, G), up[::-1]])
+    g = np.tile(np.concatenate([lobe, -lobe]), cycles)
+    return np.stack([g, np.zeros_like(g), np.zeros_like(g)], axis=1)
+
+
+def _lamellae_walk(g, dt, r_in, r_out, n_walkers, rng, n_sub):
+    """The echo of the exact Brownian walks on the lamellae of a sheath: each walker starts at a radius drawn with
+    density proportional to ``r`` on ``[r_in, r_out]`` and an angle uniform on the circle, and stays on its lamella,
+    where the angle takes Gaussian steps of variance ``2 D h / r^2``; the phase is the trapezoid rule over the ``n_sub``
+    sub-steps of each step of the gradient. Returns the mean of ``cos(phi)`` and its standard error."""
+    r = np.sqrt(rng.uniform(r_in ** 2, r_out ** 2, n_walkers))
+    theta = rng.uniform(0.0, 2.0 * np.pi, n_walkers)
+    phase = np.zeros(n_walkers)
+    h = dt / n_sub
+    sd = np.sqrt(2.0 * D * h) / r
+    x, y = r * np.cos(theta), r * np.sin(theta)
+    for k in range(len(g)):
+        for _ in range(n_sub):
+            theta = theta + sd * rng.standard_normal(n_walkers)
+            x1, y1 = r * np.cos(theta), r * np.sin(theta)
+            phase += GAMMA * h * 0.5 * (g[k, 0] * (x + x1) + g[k, 1] * (y + y1))
+            x, y = x1, y1
+    c = np.cos(phase)
+    return float(c.mean()), float(c.std(ddof=1)) / np.sqrt(n_walkers)
+
+
+BEYOND_DT = 1e-4          # s; D dt / R^2 <= 0.01 on the smallest tube below
+BEYOND_R = 3e-6           # m, the circle's radius: D / R^2 = 89 / s
+BEYOND_SHEATH = (1.8e-6, 3.0e-6)       # m, the lamellae's innermost and outermost radii
+BEYOND_N = 20_000
+BEYOND_SUB = 5
+#: (name, effective waveform): 12.5 Hz is below the circle's diffusion rate (2 pi f = 79 < 89 / s), 25 and 50 Hz are past it
+#: (157 and 314 / s); the amplitudes bring the echo of each to the middle of (0, 1), where a wrong exponent shows.
+BEYOND_WAVEFORMS = [
+    ("OGSE 12.5 Hz, 70 mT/m", _ogse(0.07, 12.5, 2, BEYOND_DT, 5e-4)),
+    ("OGSE 25 Hz, 100 mT/m", _ogse(0.10, 25.0, 2, BEYOND_DT, 5e-4)),
+    ("OGSE 50 Hz, 200 mT/m", _ogse(0.20, 50.0, 2, BEYOND_DT, 5e-4)),
+    ("gradient turning 2 cycles in the plane, 100 mT/m", _turning(0.10, 800, 2.0)),
+]
+#: The rows sharing the family-wise level: every waveform on the circle and on the lamellae.
+BEYOND_ROWS = 2 * len(BEYOND_WAVEFORMS)
+
+
+def _beyond_allowance(g, se, kappa):
+    """``z SE`` plus the bias of the trapezoid rule per sub-step ``h``, as in :func:`test_an_outline_is_its_monte_carlo_walk`:
+    the bridge's fluctuation ``gamma h sqrt(D int G^2 dt / 6)`` and its conditional mean through the curvature
+    ``kappa`` of the path, ``gamma int |G| dt kappa D h / 3`` (``kappa`` the largest curvature, ``1 / r_min``). ``z`` is
+    the two-sided family-wise level 1e-3 Bonferroni-corrected over the :data:`BEYOND_ROWS` rows."""
+    h = BEYOND_DT / BEYOND_SUB
+    area = GAMMA * float(np.linalg.norm(g, axis=1).sum()) * BEYOND_DT
+    bias = GAMMA * h * np.sqrt(D * float(np.sum(g * g)) * BEYOND_DT / 6.0) + area * kappa * D * h / 3.0
+    return stats.norm.isf(0.5e-3 / BEYOND_ROWS) * se + bias
+
+
+@pytest.mark.parametrize("case", range(len(BEYOND_WAVEFORMS)))
+def test_the_circle_is_its_monte_carlo_walk_under_ogse_and_a_turning_gradient(case):
+    """The circle's matrix route (:func:`surface.circle_signal`) against the Monte Carlo of the exact walk on the
+    ring (:func:`_monte_carlo`, 20,000 walkers on a 4096-gon, which the 2^16-point arc table follows to
+    ``1e-9 R``), for a trapezoidal OGSE below and past the circle's diffusion rate and for a gradient turning in the
+    plane. Seeds ``SeedSequence(20261108)`` spawn 0-3; agreement within :func:`_beyond_allowance`."""
+    name, g = BEYOND_WAVEFORMS[case]
+    ring = np.stack([BEYOND_R * np.cos(2.0 * np.pi * np.arange(4096) / 4096),
+                     BEYOND_R * np.sin(2.0 * np.pi * np.arange(4096) / 4096)], axis=1)
+    E = surface.circle_signal(g, BEYOND_DT, 2 * BEYOND_R, D)
+    rng = np.random.default_rng(np.random.SeedSequence(20261108).spawn(BEYOND_ROWS)[case])
+    mean, se, _ = _monte_carlo(ring, g, BEYOND_DT, (), BEYOND_N, rng, BEYOND_SUB, 2 ** 16)
+    assert 0.05 < E.real < 0.95, name
+    assert abs(E.real - mean) <= _beyond_allowance(g, se, 1.0 / BEYOND_R), (name, E.real, mean, se)
+
+
+@pytest.mark.parametrize("case", range(len(BEYOND_WAVEFORMS)))
+def test_the_lamellae_are_their_monte_carlo_walk_under_ogse_and_a_turning_gradient(case):
+    """The lamellae's average (:func:`sheath.lamellae_signal`, the Gauss-Legendre rule in the radius) against walkers
+    that start at a radius drawn with density proportional to ``r`` and stay on their lamella
+    (:func:`_lamellae_walk`, 20,000 walkers), for the waveforms of the circle's test, on seeds 4-7 of
+    ``SeedSequence(20261108)``; agreement within :func:`_beyond_allowance`, whose curvature is the innermost lamella's."""
+    name, g = BEYOND_WAVEFORMS[case]
+    r_in, r_out = BEYOND_SHEATH
+    E = sheath.lamellae_signal(g, BEYOND_DT, 2 * r_out, 2 * r_in, D)
+    rng = np.random.default_rng(np.random.SeedSequence(20261108).spawn(BEYOND_ROWS)[len(BEYOND_WAVEFORMS) + case])
+    mean, se = _lamellae_walk(g, BEYOND_DT, r_in, r_out, BEYOND_N, rng, BEYOND_SUB)
+    assert 0.05 < E.real < 0.95, name
+    assert abs(E.real - mean) <= _beyond_allowance(g, se, 1.0 / r_in), (name, E.real, mean, se)
