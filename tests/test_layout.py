@@ -1,11 +1,12 @@
 """``dmipy_analytic.jax`` mirrors the numpy modules: every module of forms has its twin module at the same path (the
-constants and the private helpers have none)."""
+constants and the private helpers have none, nor has the finite-volume reference, a float64 oracle built on dense
+eigendecompositions)."""
 from pathlib import Path
 
 import dmipy_analytic
 
 ROOT = Path(dmipy_analytic.__file__).parent
-WITHOUT_TWIN = {"__init__.py", "constants.py", "_extras.py"}
+WITHOUT_TWIN = {"__init__.py", "constants.py", "_extras.py", "permeable_shell.py"}
 
 
 def _modules(root):
