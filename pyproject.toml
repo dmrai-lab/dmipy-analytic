@@ -36,3 +36,4 @@ include = ["dmipy_analytic*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: refinement studies that take tens of seconds; deselect with -m \"not slow\""]

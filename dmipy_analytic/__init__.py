@@ -16,6 +16,8 @@ The modules:
 * :mod:`~dmipy_analytic.exchange`: exchange between compartments and permeable membranes;
 * :mod:`~dmipy_analytic.bloch_torrey`: the one-dimensional Bloch-Torrey equation on layers between two walls, with
   membranes, surface relaxivity, relaxation, off-resonance and a background gradient, solved to a stated accuracy;
+* :mod:`~dmipy_analytic.permeable_shell`: the radial finite-volume Bloch-Torrey equation of a permeable sphere, cylinder
+  or slab in a finite shell, under any piecewise-constant waveform, with the pools' exchange and a stated error;
 * :mod:`~dmipy_analytic.relaxation`: relaxation, surface relaxivity and the exchange of magnetization between pools;
 * :mod:`~dmipy_analytic.epg`: extended phase graphs;
 * :mod:`~dmipy_analytic.fields`: the fields of simple shapes of susceptibility;

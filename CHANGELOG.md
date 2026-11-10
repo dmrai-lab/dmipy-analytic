@@ -5,6 +5,18 @@ the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **A permeable pore in a finite shell** (`permeable_shell.PermeableShell`, `ShellSpec`, `reference`, `pgse_waveform`): the
+  Bloch-Torrey equation with radial symmetry on a pore `r < R` (diffusivity `D_in`) inside a shell `R < r < R_out`
+  (`D_out`, reflecting outer wall) for the sphere, the cylinder (uniform along its axis) and the slab, with the membrane
+  condition `D m' = kappa [m]` (m/s) at `R`. The gradient along a fixed direction couples the angular harmonics (Legendre
+  polynomials, `cos k phi`, or the even/odd parts) through a tridiagonal matrix, kept to a stated number; the radial
+  problems are cell-centred finite volumes with the diffusion applied exactly in each harmonic's eigenbasis and the
+  gradient exactly cell by cell (Strang split), second order in the cells and in the step. Outputs: the complex signal
+  of each pool and their sum under PGSE or any piecewise-constant waveform with ideal 180s, the exchange matrix
+  `P_ij(t)`, the slowest exchange rate and the mean residence time. `reference` refines until a requested tolerance, checks the
+  observed order and returns every signal with its error bar. Checked against the matrix method (sphere, cylinder,
+  annulus), the Gaussian-phase exponent, free diffusion at `kappa = inf`, the one-dimensional solver, the
+  Brownstein-Tarr series of two layers, the closed-form residence times and the two-site kinetics at slow exchange.
 - **Bound pools on the faces of a membrane** (`bloch_torrey.BlochTorrey1D(binding_reactivity=, dwell_time=,
   bound_R2=, bound_omega=, bound_start=)`, `signal(pool=)`): on each face of an interior edge a pool of spins bound to
   the surface, fed from the free water at the face at the reactivity `k_on` (m/s) and returned to it after an
