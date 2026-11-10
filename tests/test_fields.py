@@ -1,5 +1,6 @@
-"""The field forms against independent routes: the hollow cylinder's lumen field is Wharton and Bowtell's, its outside
-field their two-dimensional dipole, a long segment is the infinite line, segments add, a short segment far away is a
+"""The field forms against independent routes: the hollow cylinder's lumen and outside fields are Wharton & Bowtell
+(2012), Table 1, in this package's tensor convention (Fig. 3C): ``chi_I = tr(chi)/3`` is identical and
+``chi_A = chi_radial - chi_tangential = (3/2) chi_A(W&B)``. A long segment is the infinite line, segments add, a short segment far away is a
 point dipole; the annulus mean of ``ln(b/r)`` is its quadrature; the current segment is the Biot-Savart integral by
 quadrature and, on its bisector, the finite wire's closed form."""
 import numpy as np
