@@ -132,9 +132,10 @@ def test_the_slab_is_the_one_dimensional_solver_on_three_layers():
 def test_the_slab_populations_are_a_membrane_between_equal_layers(kappa):
     from dmipy_analytic.relaxation import surface_relaxation_plane
     a = 2e-6
-    t = np.array([2e-3, 10e-3, 50e-3])
+    t = np.array([0.1, 0.4, 1.6]) * a / (2.0 * kappa)         # fractions of the membrane's own exchange time
     spec = ShellSpec("slab", a, 2 * a, D, D, kappa)
-    got = [PermeableShell(spec, n_in=n, n_out=n, n_harmonics=2).exchange(t) for n in (50, 100, 200)]
+    solvers = [PermeableShell(spec, n_in=n, n_out=n, n_harmonics=2) for n in (50, 100, 200)]
+    got = [s.exchange(t) for s in solvers]
     err, ratio = _richardson(np.array(got)[:, 0, 0])
     odd = surface_relaxation_plane(t, 2 * a, D, 2 * kappa)
     pred = (1.0 + odd) / 2.0                                  # the share of the first layer that started in it
