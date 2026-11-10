@@ -3,8 +3,13 @@ anisotropic susceptibility (the myelin sheath), infinite and as a finite segment
 segment.
 
 **The hollow cylinder.** The sheath ``a < r < b`` carries the susceptibility tensor ``chi_I I + chi_A (n n^T - I/3)``
-with ``n`` the radial (lipid) director. The along-B0 field, in a basis of 13 components of 12 degrees of freedom (12
-are carried), is
+with ``n`` the radial (lipid) unit director and ``I`` the identity tensor. Here ``chi_I = tr(chi)/3`` is the mean
+isotropic susceptibility and ``chi_A = chi_radial - chi_tangential`` is the radial-minus-tangential susceptibility
+difference; the eigenvalues are ``chi_I + 2 chi_A/3`` radially and ``chi_I - chi_A/3`` in both tangential directions.
+Wharton & Bowtell (2012), Fig. 3C, use ``chi = chi_I I + diag(chi_A, -chi_A/2, -chi_A/2)`` in the local radial frame.
+Thus ``chi_A(this package) = (3/2) chi_A(W&B)``, with identical ``chi_I`` for the same susceptibility reference:
+W&B ``chi_A = -0.1 ppm`` is ``chi_A = -0.15 ppm`` here. The along-B0 field, in a basis of 13 components of 12
+degrees of freedom (12 are carried), is
 
     dB/B0 = chi_I [ m/3 - H.M_P.H ] + chi_A H.M_A.H
 
@@ -16,10 +21,11 @@ radial unit vector, ``e2 = u x e1``; ``P = I - u u^T``, ``S = e1 e1^T - e2 e2^T`
     outside (r >= b):    M_P = -((b^2 - a^2) / 2 r^2) S       M_A = ((b^2 - a^2) / 12 r^2) S
 
 so that ``H.P.H = sin^2 theta``, ``H.S.H = sin^2 theta cos 2 alpha`` (theta the fibre-to-B0 angle, alpha the azimuth of
-B0 from the point's radial direction). The lumen field is the Wharton-Bowtell one, ``(1/2) chi_A sin^2 theta ln(1/g)``,
+B0 from the point's radial direction). The lumen field is ``(1/2) chi_A sin^2 theta ln(1/g)`` with ``g = a/b``,
 uniform and zero with B0 along the fibre; outside, ``(chi_I + chi_A/6) (b^2 - a^2) sin^2 theta cos 2 alpha / (2 r^2)``.
+These fields are the Wharton-Bowtell fields with their anisotropy converted to this package's convention.
 Source: Wharton & Bowtell (2012), *Fiber orientation-dependent white matter contrast in gradient echo MRI*, PNAS
-109:18559-18564, their eq. 2 with the anisotropic term in this tensor convention. Assumptions: an infinite straight
+109:18559-18564, Table 1 (fields) and Fig. 3C (tensor convention), doi:10.1073/pnas.1211075109. Assumptions: an infinite straight
 cylinder in a uniform main field, a susceptibility small enough for the first-order (``chi << 1``) field, and the bare
 superposition value: a field computed in k-space carries its domain mean (the Lorentz reference) subtracted, a uniform
 offset a magnitude signal cannot see. The forms agree with a k-space dipole solve of one annulus (4096^2 points at
@@ -51,7 +57,17 @@ def hollow_cylinder_basis(rho_vec, u, a, b):
     """The 12 basis channels of one infinite hollow cylinder at points given by ``rho_vec`` ``(..., 3)``, the vector
     from the axis to the point (perpendicular to the axis), ``u`` ``(..., 3)`` the unit axis, ``a`` and ``b`` ``(...)``
     the inner and outer radii (metres). Returns ``(..., 12)``: ``iso_local`` (``m / 3``), the five stored components of
-    ``M_P`` (``zz`` follows from its trace), the six of ``M_A``; float64, broadcast over leading axes."""
+    ``M_P`` (``zz`` follows from its trace), the six of ``M_A``; float64, broadcast over leading axes.
+
+    The sheath tensor is ``chi = chi_I I + chi_A (n n^T - I/3)``, with ``I`` the identity tensor and ``n`` the radial
+    (lipid) unit director. ``chi_I = tr(chi)/3`` is the mean isotropic susceptibility;
+    ``chi_A = chi_radial - chi_tangential`` is the radial-minus-tangential susceptibility difference. The along-B0
+    field is ``dB/B0 = chi_I [iso_local - H.M_P.H] + chi_A H.M_A.H``, with ``H`` the unit B0 direction.
+    Wharton & Bowtell (2012), PNAS 109:18559-18564, Table 1 (fields) and Fig. 3C (tensor convention),
+    doi:10.1073/pnas.1211075109, use ``chi = chi_I I + diag(chi_A, -chi_A/2, -chi_A/2)`` in the local radial frame.
+    Thus ``chi_A(this package) = (3/2) chi_A(W&B)``, with identical ``chi_I`` for the same susceptibility reference:
+    W&B ``chi_A = -0.1 ppm`` is ``chi_A = -0.15 ppm`` here.
+    """
     rho_vec = np.asarray(rho_vec, np.float64)
     u = np.asarray(u, np.float64)
     a = np.asarray(a, np.float64)
