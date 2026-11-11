@@ -12,9 +12,10 @@ with the gradient ``g(t)`` along the fixed direction ``x`` (any direction for th
 the cylinder, the normal for the slab); an ideal 180-degree pulse conjugates ``m``. At ``r = R`` the membrane of
 permeability ``kappa`` (m/s) gives the exchange condition
 
-    D_in m'(R-) = D_out m'(R+) = kappa (m(R-) - m(R+)),
+    D_in m'(R-) = D_out m'(R+) = kappa (m(R+) - m(R-)),
 
-the flux ``J = -D m'`` (density times m/s) equal to ``kappa`` times the density jump: the Tanner (1978) membrane
+the outward flux ``J = -D m'`` (density times m/s) equal to ``kappa (m(R-) - m(R+))``, the passive sign (flux from the
+higher density to the lower; ``m'`` is the derivative along increasing ``r``): the Tanner (1978) membrane
 condition, the one a random walk reproduces when a walker meeting the membrane crosses with probability ``x/(1+x)``,
 ``x = 2 kappa d / D`` for a normal penetration ``d`` (Fieremans et al. 2010, NMR Biomed. 23:711, Eq. 43). ``kappa = 0``
 seals the pore, ``kappa = inf`` removes the membrane (the density is continuous). The spin density is uniform, so the
