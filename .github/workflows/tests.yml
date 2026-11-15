@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[test,jax]" dipy
       - name: Test
-        run: pytest -q -rs --durations=10
+        run: pytest -q -rs
 
   parity-move:
     # The forms dmipy-analytic receives (dmrai-lab/dmipy-sim#834) are checked value for value: the calls of
