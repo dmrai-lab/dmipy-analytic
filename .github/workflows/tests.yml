@@ -10,6 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45  # measured maximum 27.2 min over twelve successful runs
     strategy:
       fail-fast: false
       matrix:
@@ -24,12 +25,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[test]"
       - name: Test
-        run: pytest -q
+        run: pytest -v --junitxml=junit-test-${{ matrix.python-version }}.xml
+      - name: Test timings (the JUnit file with every test's time)
+        if: always()
+        continue-on-error: true            # a diagnostic; a failed upload never fails the job
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ github.job }}-${{ matrix.python-version }}
+          path: junit-*.xml
+          if-no-files-found: warn
+          retention-days: 30
 
   jax:
     # the JAX twins against their numpy definitions, with the jax extra installed, and the harmonic basis against
     # DIPY's (an oracle installed here, never a dependency)
     runs-on: ubuntu-latest
+    timeout-minutes: 45  # measured maximum 27.5 min over twelve successful runs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,7 +51,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[test,jax]" dipy
       - name: Test
-        run: pytest -q -rs
+        run: pytest -v -rs --junitxml=junit-jax.xml
+      - name: Test timings (the JUnit file with every test's time)
+        if: always()
+        continue-on-error: true            # a diagnostic; a failed upload never fails the job
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ github.job }}
+          path: junit-*.xml
+          if-no-files-found: warn
+          retention-days: 30
 
   parity-move:
     # The forms dmipy-analytic receives (dmrai-lab/dmipy-sim#834) are checked value for value: the calls of
